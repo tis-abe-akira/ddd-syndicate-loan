@@ -55,7 +55,7 @@ run-buddy の `backend/CLAUDE.md` と ADR-0004 / ADR-0007 の方針を、本シ�
 
 ## 5. 未決事項
 
-- 集約の境界(例: Facility と SharePie / FacilityInvestment を同一集約にするか、Loan と PaymentDetail をどう束ねるか)。
+- 集約の境界(例: Facility と FacilityInvestment を同一集約にするか、Loan と PaymentDetail をどう束ねるか)。Share Pie は値オブジェクトとし、Facility と Loan がそれぞれ持つことは [ADR-0001](../adr/0001-multiple-drawdowns-and-loan-share-pie.md) で決定済み。
 - Transaction の継承階層(ddd-ai は JPA の継承)を、ドメインでは sealed interface と record で表すか。
 - ドメインイベント(ddd-ai の Spring Events による連携)を導入するか、アプリケーション層の明示的な呼び出しにするか。
 - 状態遷移と複数集約にまたがる更新(ファシリティ組成時の Borrower / Investor の RESTRICTED 化)の置き場所。

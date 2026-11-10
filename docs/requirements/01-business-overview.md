@@ -33,7 +33,7 @@ tags: [requirements, domain, glossary, syndicate-loan]
 | サブタイプ | 定義 |
 |---|---|
 | Facility(ファシリティ) | 借り手が資金を引き出せる融資枠(コミットメント)。 |
-| Loan(ローン) | Facility から借り手が実際に引き出した資金の残高。 |
+| Loan(ローン) | Facility から借り手が実際に引き出した資金の残高。Facility ごとに1つで、引き出しのたびに増え、返済で減る。 |
 
 ### 3.2 Transaction(取引)
 
@@ -53,10 +53,12 @@ tags: [requirements, domain, glossary, syndicate-loan]
 
 | 用語 | 定義 |
 |---|---|
-| Share Pie(シェアパイ) | Position(Facility/Loan)に対する各投資家の持分比率。 |
-| Amount Pie(金額パイ) | Transaction における各投資家への金額配分。Share Pie に基づいて計算されることが多い。 |
-| Payment Distribution(支払配分) | Payment における各投資家への返済配分(元本・利息別)。 |
-| Fee Distribution(手数料配分) | Fee Payment における受益者への配分。 |
+| Share Pie(シェアパイ) | 投資家ごとの持分を**金額**で持つ値。比率は金額から導出する。**Facility と Loan がそれぞれ持ち、互いに独立して変わる。** |
+| Amount Pie(金額パイ) | Transaction(ドローダウンなど)における各投資家への金額配分。Share Pie の一種。 |
+| Payment Distribution(支払配分) | Payment における各投資家への配分(元本・利息別)。Loan の Share Pie で按分する。 |
+| Fee Distribution(手数料配分) | Fee Payment における受益者への配分。投資家に配る場合は Facility の Share Pie で按分する。 |
+
+具体的な数値例は [Share Pie の数値例とテストケース](05-share-pie-examples.md) を参照。
 
 ### 3.4 投資額管理
 
@@ -64,6 +66,7 @@ tags: [requirements, domain, glossary, syndicate-loan]
 |---|---|
 | Current Investment Amount(現在投資額) | 各投資家の現在の実投資額。 |
 
+- 現在投資額 = その投資家の、Loan の Share Pie 上の金額(導出値)。
 - 増加: Drawdown 実行時に Amount Pie の金額分が加算される。
 - 減少: Payment 実行時に Payment Distribution の**元本分のみ**が減算される。
 - 利息は投資額に影響せず、投資家の収益として扱う。
@@ -114,17 +117,22 @@ flowchart LR
 | Position / Transaction の構造 | エピローグで導入 | 3.1, 3.2 | **一致**(ddd-ai はこの構造を採用) |
 | Share Pie を支払配分にも使う | 持分は Facility・Loan・支払配分に共通 | Amount Pie / Payment Distribution / Fee Distribution を別名で定義 | 概念は一致。名前の統一は未決 |
 | 引き出し時の配分 | 貸し手は持分どおりとは限らず、辞退・増額がある | FR-04: Share Pie に基づく自動計算。明示指定も可能 | **一致**(ただし、明示指定時に合計=引出額の検証を要件にする) |
-| **同一 Facility への複数回の引き出し** | 可能。$50MM → $30MM と引き出し、Loan 残高は $80MM になる | BR-21: 最初のドローダウンで Facility を FIXED にし、2度目を**禁止** | **不一致**(下記) |
-| **Loan の持分** | Loan 自身が Share Pie を持ち、引き出しのたびに変わる | Loan は引き出しごとに作られ、配分は引き出し時の Amount Pie で固定 | **不一致**(下記) |
-| 元本・利息の配分 | Loan の持分で配分 | BR-12: ドローダウン時の Amount Pie で配分 | Loan が1回の引き出しに対応する限り同等。複数回の引き出しを許す場合は Loan の持分での配分が必要 |
+| 同一 Facility への複数回の引き出し | 可能。$50MM → $30MM と引き出し、Loan 残高は $80MM になる | BR-21: 複数回を許す | **一致**(2026-11-10 決定。ddd-ai から変更) |
+| Loan の持分 | Loan 自身が Share Pie を持ち、引き出しのたびに変わる | Loan が Share Pie を持つ | **一致**(2026-11-10 決定。ddd-ai から変更) |
+| 元本・利息の配分 | Loan の持分で配分 | BR-12: Loan の Share Pie で配分 | **一致** |
 | 手数料の配分 | Facility の持分で配分 | BR-43: コミットメント・遅延のみ Share Pie。他は単一受益者 | 差異あり(下記) |
 | 丸め | 端数を正確に会計。Share Pie で解消 | BR-32, NFR-01 | 一致 |
 | 用語 | 「Loan Investment」は銀行用語ではない | 使っていない。ただし「Facility Investment」は ddd-ai の独自語 | 要確認 |
 
-### 不一致と差異(要確認)
+### 決定済み
 
-1. **複数回のドローダウン**: 書籍は、1つの Facility に対し複数回の引き出しを許し、Loan 残高が増えていくモデルである。ddd-ai の「最初のドローダウンで FIXED にして2度目を禁止する」規則は、書籍の例と合わない。実務(例: 限度額内での繰り返しの引き出し)からも不自然である。**BR-21 を見直す**ことを推奨する。見直す場合、FIXED の意味(持分の変更禁止のみとするか)を決める。
-2. **Loan の持分**: 書籍どおり Loan が Share Pie を持つ設計にすると、複数回の引き出しや、返済時の Loan 持分での配分が素直に表せる。ddd-ai は引き出しごとに Loan を作る簡略化をしている。どちらにするかは [設計方針](../arch/design-principles.md) の集約の決定と合わせて決める。
+ddd-ai との不一致2点は、書籍に合わせることにした(2026-11-10)。[ADR-0001](../adr/0001-multiple-drawdowns-and-loan-share-pie.md) を参照。
+
+1. **複数回のドローダウン**を許す。
+2. **Loan に Share Pie を持たせる**。具体例は [Share Pie の数値例とテストケース](05-share-pie-examples.md)。
+
+### 残る差異(要確認)
+
 3. **手数料**: 書籍の手数料は、Facility を利用可能にしておく対価で、Facility の持分で配分する。コミットメント手数料はこれに当たる。管理・アレンジメント・エージェント手数料を単一の受益者に払うのは、書籍にはない ddd-ai の具体化で、特定の役割(リード銀行)への報酬という別の性質のものと読める。
 4. **持分の取引**: 書籍は、利息の持分と手数料の持分を別々に取引する場面があると述べる。FR-10 の設計では、持分の種類(Facility / Loan / 手数料 / 利息)ごとの取引を考慮する。
 

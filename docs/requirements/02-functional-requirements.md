@@ -58,13 +58,15 @@ tags: [requirements, functional, drawdown, payment, fee, facility]
 
 **処理**:
 
-1. 要求を受け付け、Facility の残高を確認して引き出し可能か検証する。(BR-01〜BR-05)
-2. **Loan** を自動生成し、返済条件(金利・期間・返済方法)を設定する。
-3. 返済スケジュール(**PaymentDetail**)を自動生成する。(BR-10, BR-11)
-4. 投資家ごとの金額配分(**Amount Pie**)を Share Pie に基づき自動計算する。明示指定も可能とする(辞退や増額への対応。書籍の例では、2回目の引き出しで貸し手 B が参加せず A が多く拠出する)。明示指定した場合も、配分の合計は引出額と一致すること。
+1. 要求を受け付け、Facility の利用可能額を確認して引き出し可能か検証する。(BR-01〜BR-05)
+2. 投資家ごとの配分(**Amount Pie**)を決める。指定がなければ Facility の Share Pie で按分する(BR-13)。辞退や肩代わりに対応するため、明示指定もできる(BR-14)。
+3. 初回なら **Loan** を作る(Facility ごとに1つ)。Loan の Share Pie に配分を足す。
+4. 返済条件と返済スケジュール(**PaymentDetail**)を設定する。(BR-10, BR-11。複数回の引き出しとの関係は要確認)
 5. **Drawdown** 取引を記録する。
-6. Facility の状態を確定(FIXED)へ遷移させる。(BR-21)
+6. 初回なら Facility を FIXED にする。(BR-21)
 7. 投資家の現在投資額を加算する。(FR-08)
+
+**同一 Facility に対し、利用可能額の範囲で何度でも引き出せる。** 数値例は [Share Pie の数値例とテストケース](05-share-pie-examples.md)。
 
 **照会**: 一覧(ページング対応)、詳細、ファシリティ別一覧。
 
@@ -73,8 +75,8 @@ tags: [requirements, functional, drawdown, payment, fee, facility]
 借り手が元本・利息を返済する。
 
 1. **Payment** を作成し、総額・元本・利息を記録する。
-2. ドローダウン時の Amount Pie に基づき、投資家ごとの **Payment Distribution**(元本・利息別)を自動計算する。(BR-12)
-3. 元本分のみ各投資家の現在投資額から減算する。利息は収益として扱い、投資額に影響させない。(FR-08)
+2. **Loan の Share Pie** で按分し、投資家ごとの **Payment Distribution**(元本・利息別)を自動計算する。(BR-12)
+3. 元本分を Loan の Share Pie から引く。これが各投資家の現在投資額の減少になる。利息は収益として扱い、投資額に影響させない。(FR-08)
 4. Loan の状態を更新する。(BR-22)
 
 **照会**: ローン別の返済履歴。
@@ -98,6 +100,7 @@ tags: [requirements, functional, drawdown, payment, fee, facility]
 ## FR-08 投資額管理
 
 - 各投資家の現在投資額を自動で追跡する。
+- 現在投資額は、Loan の Share Pie 上のその投資家の金額とする(別に集計値を持たない)。
 - 増加: Drawdown 実行時(Amount Pie の金額)。
 - 減少: Payment 実行時(Payment Distribution の元本分のみ)。
 - 利息・手数料は投資額を変えない。
@@ -122,6 +125,6 @@ tags: [requirements, functional, drawdown, payment, fee, facility]
 
 ## 要確認
 
-- **ドローダウンを同一 Facility に複数回実行できるか。** 元ネタ(ddd-ai)は2度目を禁止しているが、書籍(Evans DDD 第8章)は複数回の引き出しを前提とする。見直しを推奨。詳細は [業務概要と用語](01-business-overview.md) の「出典と裏取り状況」。(BR-21)
+- 利用可能額の計算(回転型か否か)、投資家ごとの上限、引き出しごとの返済スケジュールの扱い。[Share Pie の数値例とテストケース](05-share-pie-examples.md) の「要確認」を参照。
 - 返済を、返済スケジュール(PaymentDetail)単位で受け付けるのか、任意金額で受け付けるのか。
 - FR-02 の「借入可能額」の設定方法と、ドローダウン時の上限チェックへの反映。
