@@ -87,3 +87,34 @@ flowchart LR
 ```
 
 各プロセスの詳細は [機能要件](02-functional-requirements.md) を参照。
+
+## 6. 出典と裏取り状況
+
+本ドメインは、Eric Evans『Domain-Driven Design』第8章「Breakthrough(突破)」のシンジケートローンの例(Share Pie)を土台にしている。
+
+### 確認できたこと(二次情報)
+
+検索結果の要約で確認できた範囲。章本文そのものは未読。
+
+- 第8章の題は「Breakthrough」で、節は「A Decent Model, and Yet…」「The Breakthrough」「A Deeper Model」「The Payoff」。
+- 舞台は投資銀行のシンジケートローン管理アプリ。貸し手(投資家)が、ファシリティ(融資枠)に対して持分を出し合う。
+- 当初のモデルは、ファシリティの持分とローンの持分を結びつけ、差分を「Loan Adjustment」で調整していた。業務の専門家には通じず、ユビキタス言語と食い違っていた。
+- 突破: ファシリティの持分とローンの持分は独立に変わりうる。「Investment」と「Loan Investment」は、より一般的な「持分(Share)」の特殊ケースだと気づき、**Share Pie**に一般化した。
+- 効果: 特殊なオブジェクトと Loan Adjustment が不要になり、ローンの Share Pie を直接調整できるようになった。
+
+### 本文書との対応
+
+| 第8章で確認できた点 | 本文書での扱い |
+|---|---|
+| Share Pie は Facility と Loan の両方に共通の概念 | 3.3 で Position(Facility/Loan)に対する持分比率と定義した |
+| 持分は Facility と Loan で独立に変わりうる | 未反映。元ネタ(ddd-ai)は Drawdown 時の Amount Pie を Loan 側の配分に使っている。Loan 自身の Share Pie を持たせるかは未決 |
+| Loan Adjustment は不要 | 本文書にも存在しない(整合) |
+
+### 未確認のこと
+
+- ドローダウン、返済の配分(元本・利息)、手数料、ファシリティ取引(FR-04〜FR-10)の詳細は、**章本文で確認できていない**。ddd-ai の独自の具体化であり、書籍の仕様とは限らない。
+- 参照元の候補(許可ドメイン外で未取得): Nick Tune「Share Pie: The DDD Treasure Hidden in Plain Sight」(2021)、同章の中国語訳。書籍の英語原文の確認が望ましい。
+
+### 要確認
+
+- 書籍どおり、Facility と Loan が**それぞれ Share Pie を持ち、独立に変更できる**モデルにするか、ddd-ai のように Loan 側は Amount Pie の比率で固定するか。FR-10(ファシリティ取引)の設計に影響する。
