@@ -25,6 +25,10 @@ tags: [architecture, tech-stack, spring-boot, java, postgresql, jooq, react]
 | frontend | Vite + React + TypeScript + TanStack Router + TanStack Query(SPA) | ADR-0005。SSR は使わない |
 | backend テスト | JUnit 5、`@WebMvcTest` + MockMvc、Testcontainers(PostgreSQL)、ArchUnit | |
 | frontend テスト | Vitest + Testing Library | |
+| 認証 | ID プロバイダを差し替えられる構成。候補: 簡易な自作、Keycloak | 本プロジェクト独自(#7, #8) |
+| 耐障害性 | リトライ、サーキットブレーカー、タイムアウト。候補: Resilience4j、Spring Framework の標準機能 | 本プロジェクト独自。技術検証を兼ねる(#8) |
+| バッチ | Spring Batch(振替依頼データの作成) | 本プロジェクト独自。技術検証を兼ねる(#8) |
+| 外部サービスのモック | 信用格付・金利指標。遅延・エラーを再現できること。候補: WireMock、テスト用のアダプタ | 本プロジェクト独自(#8) |
 | CI | GitHub Actions(backend: `./mvnw test`、jOOQ 生成物の差分チェック、ArchUnit のミューテーションチェック / frontend: `npm run build` + `npm test`) | |
 
 ## 元ネタ(ddd-ai)との差分
@@ -47,5 +51,7 @@ Garmin 連携、FIT ファイル、Leaflet の地図、Spring AI による AI �
 
 - **行レベルセキュリティ(RLS)**: run-buddy は複数ユーザーのデータ分離に使っている。本システムで複数ユーザーを想定するか([要件](../requirements/04-non-functional-and-scope.md))次第。採用しない場合は、`user_id` と `RlsTransactionManager` を持ち込まない。
 - **状態遷移の実装**: Spring State Machine を使うか、ドメインオブジェクト自身が遷移を守る(sealed interface / enum + 遷移メソッド)か。run-buddy の方針(不変なドメイン型が自分で不変条件を守る)に合わせるなら後者が自然。ddd-ai の docs/state-machine の分析も参考にする。
+- **耐障害性のライブラリ**: Resilience4j か、Spring Framework の標準機能か。Spring Boot 4.1 系での対応を確認してから決める。
+- **認証の層**: BFF やゲートウェイとするか、バックエンド内の部品とするか。Keycloak を使う場合の起動方法(docker compose など)。
 - **frontend の範囲**: 要件上は API が中心。UI をどこまで作るか。
 - **アプリの Java パッケージ名とアーティファクト名**(`com.example.syndicateloan` を仮置き)。
