@@ -43,7 +43,7 @@ erDiagram
     FACILITY ||--o| LOAN : "is drawn into"
     LOAN ||--o{ LOAN_SHARE : "has"
     ORGANIZATION ||--o{ LOAN_SHARE : "holds"
-    LOAN ||--o{ DRAWDOWN : "grows by"
+    FACILITY ||--o{ DRAWDOWN : "is drawn by"
     DRAWDOWN ||--o{ DRAWDOWN_CONTRIBUTION : "is funded by"
     ORGANIZATION ||--o{ DRAWDOWN_CONTRIBUTION : "contributes"
     DRAWDOWN ||--o{ REPAYMENT_SCHEDULE_ITEM : "is repaid by"
@@ -378,7 +378,7 @@ erDiagram
 
 ### FACILITY
 
-融資案件から組成した、借り手が引き出せる融資枠。
+融資案件から組成した、借り手が引き出せる融資枠。組成中(DRAFT)で組成の稟議にかけ、承認されると FIXED になる。
 
 | Attribute           | Description                                  | Data Type | Length/Precision | Validation Rules                                     |
 |---------------------|----------------------------------------------|-----------|------------------|------------------------------------------------------|
@@ -388,7 +388,7 @@ erDiagram
 | currency            | 通貨(ISO 4217 の3文字)                     | String    | 3                | Not Null                                             |
 | start_date          | 引き出せる期間の初日                         | Date      | -                | Not Null                                             |
 | end_date            | 引き出せる期間の末日                         | Date      | -                | Not Null                                             |
-| status              | 状態                                         | String    | 10               | Not Null, Values: DRAFT, FIXED                       |
+| status              | 状態(DRAFT は組成中、FIXED は組成の稟議の承認後) | String    | 10               | Not Null, Values: DRAFT, FIXED                       |
 | approval_request_id | 組成の稟議(外部キーは張らない)             | Long      | 19               | Optional                                             |
 | version             | 楽観的排他制御のバージョン                   | Integer   | 10               | Not Null                                             |
 
@@ -396,7 +396,9 @@ erDiagram
 
 - end_date は start_date より後。
 - commitment_amount は、FACILITY_SHARE の amount の合計に等しい。
-- status が FIXED になったら、commitment_amount と FACILITY_SHARE は変わらない。
+- status は、組成の稟議が最終決裁で承認されたときに FIXED になる。
+- status が FIXED になったら、commitment_amount、start_date、end_date、FACILITY_SHARE は変わらない。
+- 組成の稟議が合議中か承認中の間は、start_date、end_date、FACILITY_SHARE は変わらない。
 
 ### FACILITY_SHARE
 
@@ -427,6 +429,8 @@ erDiagram
 
 - 元本の残高は、LOAN_SHARE の amount の合計とし、別の列に持たない。
 - 元本の残高は、ファシリティのコミットメント額を超えない。
+- 初めての入金で ACTIVE になり、元本の残高が 0 になったら COMPLETED になる。
+- COMPLETED のローンにドローダウンを実行して元本の残高が 0 より大きくなったら、ACTIVE に戻る。
 
 ### LOAN_SHARE
 
@@ -441,6 +445,7 @@ erDiagram
 #### Constraints
 
 - organization_id は、ローンのファシリティに FACILITY_SHARE を持つ出資者である。
+- amount は、同じ出資者の FACILITY_SHARE の amount 以下である。
 
 ### DRAWDOWN
 
@@ -449,7 +454,7 @@ erDiagram
 | Attribute             | Description                              | Data Type | Length/Precision | Validation Rules                                           |
 |-----------------------|------------------------------------------|-----------|------------------|------------------------------------------------------------|
 | id                    | 識別子                                   | Long      | 19               | Primary Key, Sequence                                      |
-| loan_id               | 引き出し先のローン                       | Long      | 19               | Not Null, Foreign Key (LOAN.id)                            |
+| facility_id           | 引き出し元のファシリティ                 | Long      | 19               | Not Null, Foreign Key (FACILITY.id)                        |
 | amount                | 引き出す額                               | Decimal   | 19,2             | Not Null, Min: 1, Max: 999999999999999                     |
 | purpose               | 使途                                     | String    | 500              | Not Null                                                   |
 | annual_interest_rate  | 年利(%)                                | Decimal   | 9,6              | Not Null, Min: 0, Max: 100                                 |
@@ -463,7 +468,10 @@ erDiagram
 
 #### Constraints
 
-- amount は、要求した時点のファシリティの利用可能額以下である。
+- ドローダウンを依頼できるのは、status が FIXED のファシリティだけである。
+- amount は、依頼した時点のファシリティの利用可能額(コミットメント額 − ローンの元本の残高)以下である。
+- 一つのファシリティで、status が REQUESTED のドローダウンは一つだけである。
+- status が EXECUTED のドローダウンの拠出は、ファシリティのローンの LOAN_SHARE に加えられている。
 - amount は、DRAWDOWN_CONTRIBUTION の answered_amount の合計に等しい(status が EXECUTED のとき)。
 - drawdown_date は、銀行営業日で、ファシリティの start_date から end_date までの間にある。
 - status が EXECUTED なら executed_at がある。
@@ -476,7 +484,7 @@ erDiagram
 |---------------------|---------------------------------------------------|-----------|------------------|-------------------------------------------------------------|
 | drawdown_id         | ドローダウン                                      | Long      | 19               | Primary Key, Foreign Key (DRAWDOWN.id)                      |
 | organization_id     | 出資者                                            | Long      | 19               | Primary Key, Foreign Key (ORGANIZATION.id)                  |
-| requested_amount    | ファシリティのシェアパイで按分した拠出の依頼額    | Decimal   | 19,2             | Not Null, Min: 0, Max: 999999999999999                      |
+| requested_amount    | 拠出の依頼額。ファシリティのシェアパイで按分し、リード銀行が指定し直せる | Decimal   | 19,2             | Not Null, Min: 0, Max: 999999999999999                      |
 | answer              | 回答                                              | String    | 20               | Not Null, Values: PENDING, ACCEPTED, DECLINED, INCREASED     |
 | answered_amount     | 回答した拠出額                                    | Decimal   | 19,2             | Optional, Min: 0, Max: 999999999999999                      |
 | approval_request_id | 拠出の回答の稟議(外部キーは張らない)            | Long      | 19               | Optional                                                    |
@@ -487,6 +495,8 @@ erDiagram
 - 一つのドローダウンの requested_amount の合計は、ドローダウンの amount に等しい。
 - answer が ACCEPTED なら answered_amount は requested_amount に等しく、DECLINED なら 0、INCREASED なら requested_amount より大きい。
 - answer が PENDING でなければ answered_amount がある。
+- requested_amount と answered_amount は、その出資者の拠出の余地(FACILITY_SHARE の amount − LOAN_SHARE の amount)以下である。
+- answer は、回答の稟議が最終決裁で承認されたときに PENDING から変わる。requested_amount が指定し直されたら、answer は PENDING に戻る。
 
 ### REPAYMENT_SCHEDULE_ITEM
 
@@ -515,7 +525,7 @@ erDiagram
 |------------------|----------------------------------------------|-----------|------------------|--------------------------------------------------------|
 | id               | 識別子                                       | Long      | 19               | Primary Key, Sequence                                  |
 | loan_id          | 返済先のローン                               | Long      | 19               | Not Null, Foreign Key (LOAN.id)                        |
-| schedule_item_id | 対応する返済予定表の行                       | Long      | 19               | Optional, Foreign Key (REPAYMENT_SCHEDULE_ITEM.id)     |
+| schedule_item_id | 対応する返済予定表の行                       | Long      | 19               | Not Null, Unique, Foreign Key (REPAYMENT_SCHEDULE_ITEM.id) |
 | received_on      | 入金日                                       | Date      | -                | Not Null                                               |
 | principal        | 元本の額                                     | Decimal   | 19,2             | Not Null, Min: 0, Max: 999999999999999                 |
 | interest         | 利息の額                                     | Decimal   | 19,2             | Not Null, Min: 0, Max: 999999999999999                 |
@@ -524,8 +534,9 @@ erDiagram
 
 #### Constraints
 
-- principal と interest の合計は 0 より大きい。
-- principal は、記録する時点のローンの元本の残高以下である。
+- principal と interest は、対応する返済予定表の行の principal と interest に等しい。
+- schedule_item_id の行は、loan_id のローンのドローダウンの行である。
+- received_on は、記録した日以前で、ドローダウンの drawdown_date 以降である。
 
 ### REPAYMENT_DISTRIBUTION
 
