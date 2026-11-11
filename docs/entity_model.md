@@ -325,7 +325,7 @@ erDiagram
 | organization_id     | 参加する金融機関                        | Long      | 19               | Not Null, Foreign Key (ORGANIZATION.id)                                |
 | role                | 融資案件での立場                        | String    | 20               | Not Null, Values: LEAD_ARRANGER, INVESTOR                              |
 | status              | 参加の状態                              | String    | 20               | Not Null, Values: CANDIDATE, INVITED, ACCEPTED, DECLINED               |
-| commitment_amount   | 応諾したコミットメント額                | Decimal   | 19,2             | Optional, Min: 1, Max: 999999999999999                                 |
+| commitment_amount   | 応諾したコミットメント額(組成の目安)  | Decimal   | 19,2             | Optional, Min: 1, Max: 999999999999999                                 |
 | approval_request_id | 参加の回答の稟議(外部キーは張らない)  | Long      | 19               | Optional                                                               |
 | version             | 楽観的排他制御のバージョン              | Integer   | 10               | Not Null                                                               |
 
@@ -413,6 +413,7 @@ erDiagram
 
 #### Constraints
 
+- 出資者の amount は、0 より大きく、その出資者の DEAL_PARTICIPANT の commitment_amount 以下である(組成時に調整できる)。
 - organization_id は、ファシリティの融資案件の参加者で、role が INVESTOR で status が ACCEPTED の出資者か、role が LEAD_ARRANGER のリード銀行である(参加金融機関)。
 
 ### LOAN
