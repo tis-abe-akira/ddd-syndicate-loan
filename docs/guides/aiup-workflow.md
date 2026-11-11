@@ -22,7 +22,8 @@ sources:
 | `docs/vision.md`(チームが書く入力) | 置かない。代わりに [brief](../brief/index.md) の 01〜07 を入力にする |
 | `docs/requirements.md`、`docs/glossary.md` | 作成済み(2026-11-11)。要件の正はこちら |
 | `docs/entity_model.md` | 作成済み(2026-11-11) |
-| `docs/use_cases.puml`、`docs/use_cases/` | 未作成 |
+| `docs/use_cases.puml` | 作成済み(2026-11-11)。UC-001〜UC-035 |
+| `docs/use_cases/` | 未作成 |
 | `docs/architecture/stack.md` | 未作成。2 で作る |
 | `docs/architecture/decisions/` | [ADR-001](../architecture/decisions/ADR-001-multiple-drawdowns-and-loan-share-pie.md) を aiup 形式で置いた。`**Requirements:**` は空 |
 | `docs/open_questions.md` | **作らない。** 仕様の未決事項は GitHub Issue(`[要確認]`)で管理する(AGENTS.md「仕様の未決事項は GitHub Issue で管理する」) |

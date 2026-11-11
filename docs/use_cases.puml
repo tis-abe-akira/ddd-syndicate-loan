@@ -1,0 +1,120 @@
+@startuml Use Cases Overview
+left to right direction
+
+actor "利用者" as user
+actor "運用管理者" as opsAdmin
+actor "組織管理者" as orgAdmin
+actor "借り手の申込担当" as applicant
+actor "借り手の照会担当" as borrowerViewer
+actor "リード銀行の担当者" as lead
+actor "出資者の担当者" as investor
+actor "起案者" as drafter
+actor "合議先" as consultee
+actor "承認者" as approver
+actor "報告先" as reportee
+actor "スケジューラ" as scheduler
+actor "ID プロバイダ" as idp
+actor "信用格付サービス" as ratingService
+actor "金利指標サービス" as rateService
+
+user <|-- opsAdmin
+user <|-- orgAdmin
+user <|-- applicant
+user <|-- borrowerViewer
+user <|-- lead
+user <|-- investor
+
+rectangle "シンジケートローン管理システム" {
+    usecase "UC-001\n利用組織を登録する" as UC001
+    usecase "UC-002\n祝日を保守する" as UC002
+    usecase "UC-003\n利用者とロールを管理する" as UC003
+    usecase "UC-004\n職位を設定する" as UC004
+    usecase "UC-005\n承認経路の規則を設定する" as UC005
+    usecase "UC-006\nログインする" as UC006
+    usecase "UC-007\n融資を申し込む" as UC007
+    usecase "UC-008\n残高と返済予定表を照会する" as UC008
+    usecase "UC-009\n借り手を審査する" as UC009
+    usecase "UC-010\n出資者を審査する" as UC010
+    usecase "UC-011\n開示情報を作る" as UC011
+    usecase "UC-012\nシンジケートへの参加を呼びかける" as UC012
+    usecase "UC-013\n開示情報を閲覧する" as UC013
+    usecase "UC-014\n参加を回答する" as UC014
+    usecase "UC-015\nファシリティを組成する" as UC015
+    usecase "UC-016\nドローダウンを依頼する" as UC016
+    usecase "UC-017\nドローダウンへの拠出を回答する" as UC017
+    usecase "UC-018\nドローダウンを実行する" as UC018
+    usecase "UC-019\n返済の入金を記録する" as UC019
+    usecase "UC-020\n手数料の入金を記録する" as UC020
+    usecase "UC-021\n遅延を一覧する" as UC021
+    usecase "UC-022\n取引履歴を照会する" as UC022
+    usecase "UC-023\n持分と配分を照会する" as UC023
+    usecase "UC-024\n稟議を起案する" as UC024
+    usecase "UC-025\n稟議に合議する" as UC025
+    usecase "UC-026\n稟議を承認する" as UC026
+    usecase "UC-027\n稟議の報告を確認する" as UC027
+    usecase "UC-028\n差し戻された稟議を再申請する" as UC028
+    usecase "UC-029\n否決された稟議を再起案する" as UC029
+    usecase "UC-030\n稟議を照会する" as UC030
+    usecase "UC-031\nお知らせを確認する" as UC031
+    usecase "UC-032\n会計向け CSV をダウンロードする" as UC032
+    usecase "UC-033\n引落依頼データを作る" as UC033
+    usecase "UC-034\n分配振込依頼データを作る" as UC034
+    usecase "UC-035\n振替依頼データをダウンロードする" as UC035
+}
+
+opsAdmin --> UC001
+opsAdmin --> UC002
+orgAdmin --> UC003
+orgAdmin --> UC004
+orgAdmin --> UC005
+user --> UC006
+UC006 --> idp
+applicant --> UC007
+applicant --> UC008
+borrowerViewer --> UC008
+lead --> UC009
+UC009 --> ratingService
+lead --> UC010
+lead --> UC011
+lead --> UC012
+investor --> UC013
+investor --> UC014
+lead --> UC015
+lead --> UC016
+UC016 --> rateService
+investor --> UC017
+lead --> UC018
+lead --> UC019
+lead --> UC020
+lead --> UC021
+lead --> UC022
+investor --> UC023
+drafter --> UC024
+consultee --> UC025
+approver --> UC026
+reportee --> UC027
+drafter --> UC028
+drafter --> UC029
+user --> UC030
+user --> UC031
+lead --> UC032
+investor --> UC032
+scheduler --> UC033
+scheduler --> UC034
+lead --> UC035
+
+UC009 ..> UC024 : <<include>>
+UC010 ..> UC024 : <<include>>
+UC012 ..> UC024 : <<include>>
+UC014 ..> UC024 : <<include>>
+UC015 ..> UC024 : <<include>>
+UC017 ..> UC024 : <<include>>
+
+note right of drafter
+  起案者・合議先・承認者・報告先は、
+  金融機関の利用者が稟議ごとに担う役割。
+  承認ワークフローは業務から独立した
+  汎用の機能(NFR-010、ADR-002)。
+end note
+
+@enduml
