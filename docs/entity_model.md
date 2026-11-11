@@ -626,12 +626,16 @@ erDiagram
 
 ### HOLIDAY
 
-銀行の休業日のうち、土日以外の日(祝日と12月31日〜1月3日)。
+運用管理者が登録する祝日。土日と12月31日〜1月3日は、登録しなくても銀行の休業日になるので持たない。
 
 | Attribute | Description    | Data Type | Length/Precision | Validation Rules |
 |-----------|----------------|-----------|------------------|------------------|
-| holiday   | 休業日         | Date      | -                | Primary Key      |
-| name      | 休業日の名前   | String    | 50               | Not Null         |
+| holiday   | 祝日の日付     | Date      | -                | Primary Key      |
+| name      | 祝日の名前     | String    | 50               | Not Null         |
+
+#### Constraints
+
+- holiday は月曜日から金曜日までの日で、12月31日から1月3日まででない日である。
 
 ### AUDIT_RECORD
 
