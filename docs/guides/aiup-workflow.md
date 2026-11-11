@@ -45,7 +45,7 @@ flowchart TD
     SR --> TC["/test-case"]
   end
   subgraph S2[2. 構築の準備]
-    ST["/stack"]
+    ST["/stack"] --> ARCH["構造テスト<br/>Modulith・ArchUnit"]
   end
   subgraph S3[3. ユースケースごとの構築]
     IMP["/use-case-implement UC-XXX"] --> TEST["/use-case-test UC-XXX"]
@@ -57,7 +57,7 @@ flowchart TD
     UG --> RN["/release-notes"]
   end
   SR --> ST
-  ST --> IMP
+  ARCH --> IMP
   COV -->|次の UC| IMP
   COV --> ACC
 ```
@@ -73,6 +73,9 @@ flowchart TD
 - **付加価値**: FR がユーザーストーリー形式になる。NFR に測れる閾値が付く。制約(C)が分かれる。用語集の「使わない同義語」を `/spec-review` が検査する。要件の Status がユースケースから追える。
 - **Issue との対応**: 開いている `[要確認]` の Issue は Issue のまま残す。関係する FR / NFR / C / 用語が決まったら、Issue に対応する ID を書く。決着した Issue は、決定をカタログに反映して人が確認してからクローズする。
 - **注意**: brief の業務ルール(`BR-xx`)はカタログに入らない。1-5 でユースケースの業務ルールになる。
+- **未決事項があっても進めてよい**: `/requirements` が決めるのは FR / NFR / C の粒度で、手順や業務ルールの細部は 1-6 の `/use-case-spec` で詰める。開いている `[要確認]` の Issue の多くは、ユースケースやエンティティモデルの粒度の問題なので、このままカタログを作ってよい。
+- **仮定は Issue にする**: `/requirements` は、聞かずに既定値で決めた項目を「Assumed」として報告する。その一つ一つを `[要確認]` の Issue に起票する(AGENTS.md)。
+- **数値を決める**: NFR は測れる閾値が必須になる。brief の NFR-08(性能)は「数値目標を設けない」なので、`/requirements` の質問に、目安の数値(例: 画面の応答は95%が1秒以内)で答える。
 
 ### 1-2. `/architecture-decision ADR-001 link …` — ADR と要件を結ぶ
 
@@ -128,7 +131,17 @@ flowchart TD
   | サービス | `spring-service` | `spring-service-test` |
   | REST API | `spring-rest` | `spring-rest-test` |
   | UI(React) | なし(aiup の範囲外。下の未決事項を参照) | なし |
-- **Module layout**: [設計方針](../architecture/design-principles.md) は単一モジュールの package by feature で、依存の向きは `web → ドメイン ← persistence`。`spring-service` の flat / hexagonal のどちらに当てるかを、ここで決める。
+- **Module layout**: [設計方針](../architecture/design-principles.md) は単一モジュールの package by feature で、依存の向きは `web → ドメイン ← persistence`。`spring-service` の flat / hexagonal のどちらに当てるかを、ここで決める。Spring Modulith のモジュール(`workflow` を含む)も、ここに書く。
+
+### 2-2. 構造テスト — Spring Modulith と ArchUnit(aiup の外で行う)
+
+aiup のスキルには、構造テストを作るものが無い。最初の `/use-case-implement` の前に、次の順で行う。
+
+1. **骨組み**: `backend/` の Maven プロジェクトと、モジュール(`party`・`syndicate`・`facility`・`loan`・`fee`・`transaction`・`workflow`・`shared` など)のパッケージを作る。業務のコードはまだ書かない。
+2. **構造テストを書く**: [設計方針](../architecture/design-principles.md) の「構造テスト」と「ワークフローの独立」の規則を、Spring Modulith(`ApplicationModules.verify()`)と ArchUnit のテストにする。
+3. **規則が効くことを確かめる**: 規則ごとに違反するコードを仕込み、テストが失敗するのを見てから戻す。CI では、run-buddy と同じく違反を仕込むスクリプトで確かめる。
+4. **stack.md に書く**: `/stack` の Module layout に、モジュールの一覧と、構造テストのクラスの場所を書く。
+5. 以降、新しいモジュールや規則は、構造テストを先に足してから `/use-case-implement` を実行する。`/use-case-implement` が構造テストを破ったら、規則を弱めずに実装を直す。
 
 ## 3. ユースケースごとの構築(UC ごとに繰り返す)
 

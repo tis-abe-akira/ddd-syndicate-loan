@@ -24,6 +24,7 @@ tags: [architecture, tech-stack, spring-boot, java, postgresql, jooq, react]
 | API 仕様 | springdoc-openapi | OpenAPI を frontend の型生成に使う |
 | frontend | Vite + React + TypeScript + TanStack Router + TanStack Query(SPA) | ADR-0005。SSR は使わない |
 | backend テスト | JUnit 5、MockMvcTester(aiup `spring-rest-test`)、Testcontainers(PostgreSQL)、ArchUnit | |
+| モジュール構造 | Spring Modulith(モジュールの境界の検査、モジュール間のイベント、モジュール単位の結合テスト) | 本プロジェクト独自(#9)。Spring Boot 4.1 系に対応する版を、導入時に確認する |
 | frontend テスト | Vitest + Testing Library | |
 | 認証 | ID プロバイダを差し替えられる構成。候補: 簡易な自作、Keycloak | 本プロジェクト独自(#7, #8) |
 | 耐障害性 | リトライ、サーキットブレーカー、タイムアウト。候補: Resilience4j、Spring Framework の標準機能 | 本プロジェクト独自。技術検証を兼ねる(#8) |
