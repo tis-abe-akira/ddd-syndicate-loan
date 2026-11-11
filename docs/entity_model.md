@@ -84,7 +84,7 @@ erDiagram
 |-----------------|------------------------------------------|-----------|------------------|----------------------------------------|
 | id              | 識別子                                   | Long      | 19               | Primary Key, Sequence                  |
 | organization_id | 所属する利用組織                         | Long      | 19               | Not Null, Foreign Key (ORGANIZATION.id) |
-| idp_subject     | ID プロバイダが返す利用者の識別子        | String    | 255              | Not Null, Unique                       |
+| idp_subject     | ID プロバイダが返す利用者の識別子。最初のログインで結び付くまでは無い | String    | 255              | Optional, Unique                       |
 | name            | 氏名                                     | String    | 100              | Not Null                               |
 | email           | メールアドレス                           | String    | 255              | Not Null, Unique, Format: Email        |
 | position_id     | 職位                                     | Long      | 19               | Optional, Foreign Key (POSITION.id)    |
@@ -94,6 +94,7 @@ erDiagram
 #### Constraints
 
 - 職位は、利用者と同じ利用組織の職位に限る。
+- 金融機関と借り手の利用組織は、組織管理者のロールを持ち、active が真の利用者を少なくとも一人持つ。
 
 ### USER_ROLE
 
