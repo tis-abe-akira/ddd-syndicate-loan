@@ -49,6 +49,27 @@
             <groupId>org.springframework.modulith</groupId>
             <artifactId>spring-modulith-starter-core</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jooq</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-flyway</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -84,4 +105,112 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!--
+          jOOQ のコード生成(scripts/generate-jooq.sh から使う)。PostgreSQL に Flyway で migration を当ててから、
+          モジュールごとのスキーマを、そのモジュールの persistence.jooq.generated に生成する(docs/architecture/stack.md)。
+          生成物はコミットし、手で編集しない。
+        -->
+        <profile>
+            <id>jooq-codegen</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.flywaydb</groupId>
+                        <artifactId>flyway-maven-plugin</artifactId>
+                        <configuration>
+                            <url>${jooq.codegen.url}</url>
+                            <user>${jooq.codegen.user}</user>
+                            <password>${jooq.codegen.password}</password>
+                            <locations>
+                                <location>filesystem:src/main/resources/db/migration</location>
+                            </locations>
+                        </configuration>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.flywaydb</groupId>
+                                <artifactId>flyway-database-postgresql</artifactId>
+                                <version>${flyway.version}</version>
+                            </dependency>
+                            <dependency>
+                                <groupId>org.postgresql</groupId>
+                                <artifactId>postgresql</artifactId>
+                                <version>${postgresql.version}</version>
+                            </dependency>
+                        </dependencies>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.jooq</groupId>
+                        <artifactId>jooq-codegen-maven</artifactId>
+                        <configuration>
+                            <jdbc>
+                                <driver>org.postgresql.Driver</driver>
+                                <url>${jooq.codegen.url}</url>
+                                <user>${jooq.codegen.user}</user>
+                                <password>${jooq.codegen.password}</password>
+                            </jdbc>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>organization</id>
+                                <goals><goal>generate</goal></goals>
+                                <phase>none</phase>
+                                <configuration>
+                                    <generator>
+                                        <database>
+                                            <inputSchema>organization</inputSchema>
+                                        </database>
+                                        <target>
+                                            <packageName>com.example.syndicateloan.organization.persistence.jooq.generated</packageName>
+                                            <directory>src/main/java</directory>
+                                        </target>
+                                    </generator>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>syndicate</id>
+                                <goals><goal>generate</goal></goals>
+                                <phase>none</phase>
+                                <configuration>
+                                    <generator>
+                                        <database>
+                                            <inputSchema>syndicate</inputSchema>
+                                        </database>
+                                        <target>
+                                            <packageName>com.example.syndicateloan.syndicate.persistence.jooq.generated</packageName>
+                                            <directory>src/main/java</directory>
+                                        </target>
+                                    </generator>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>facility</id>
+                                <goals><goal>generate</goal></goals>
+                                <phase>none</phase>
+                                <configuration>
+                                    <generator>
+                                        <database>
+                                            <inputSchema>facility</inputSchema>
+                                        </database>
+                                        <target>
+                                            <packageName>com.example.syndicateloan.facility.persistence.jooq.generated</packageName>
+                                            <directory>src/main/java</directory>
+                                        </target>
+                                    </generator>
+                                </configuration>
+                            </execution>
+                        </executions>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.postgresql</groupId>
+                                <artifactId>postgresql</artifactId>
+                                <version>${postgresql.version}</version>
+                            </dependency>
+                        </dependencies>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
