@@ -67,7 +67,8 @@ actor without a row is a person or a role. Without a Client layer the section is
   - `web`: REST のコントローラと DTO
 - **spring-service のレイアウト**: 単一モジュールのため、`spring-service` の flat single module として扱う。ただし、ポートは `domain` のインターフェースとし、`persistence` のアダプタがそれを実装する([設計方針](design-principles.md) 第2節)。
 - **jOOQ の生成物**: データベースのスキーマごとに、そのスキーマを持つモジュールの `persistence.jooq.generated` に生成する(`workflow` のスキーマは `workflow` モジュール、ADR-002)。手で編集しない。
-- **テスト**: `backend/src/test/java` に、本体と同じパッケージで置く。構造テスト(Spring Modulith と ArchUnit)は `com.example.syndicateloan.architecture` に置く(`docs/guides/aiup-workflow.md` の 2-2)。
+- **モジュールの公開 API**: Spring Modulith の既定どおり、モジュールの直下のパッケージにある型が公開 API になり、`domain` などのサブパッケージは内部になる。他のモジュールから使わせる型(`workflow` の申請の API と公開イベントなど)は、モジュールの直下に置く。`shared` はオープンなモジュールで、どのモジュールからも中を使える。
+- **テスト**: `backend/src/test/java` に、本体と同じパッケージで置く。構造テスト(Spring Modulith と ArchUnit)は `com.example.syndicateloan.architecture` に置く(`docs/guides/aiup-workflow.md` の 2-2)。規則が効くことを確かめるフィクスチャは、本体のモジュール検出に混ざらないよう、別のルートパッケージ(`com.example.archfixture`、`com.example.modfixture`)に置く。
 - **フロントエンド**: `frontend/` の Node プロジェクト。
 
 ## API contract
@@ -81,10 +82,10 @@ actor without a row is a person or a role. Without a Client layer the section is
 
 | Purpose            | Command |
 |--------------------|---------|
-| Build              | `cd backend && ./mvnw verify` |
+| Build              | `cd backend && ./mvnw verify`(JDK 25 が要る。`JAVA_HOME` を JDK 25 に向ける) |
 | Unit tests         | `cd backend && ./mvnw test` |
 | Integration tests  | `cd backend && ./mvnw test`(データベースのテストは Testcontainers で PostgreSQL を起動する) |
-| Structure tests    | `cd backend && ./mvnw test -Dtest='com.example.syndicateloan.architecture.**'` |
+| Structure tests    | `cd backend && ./mvnw test -Dtest='Architecture*,Modularity*'` |
 | Frontend tests     | `cd frontend && npm test` |
 | End-to-end tests   | – |
 

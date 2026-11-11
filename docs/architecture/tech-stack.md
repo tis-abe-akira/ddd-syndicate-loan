@@ -24,13 +24,13 @@ tags: [architecture, tech-stack, spring-boot, java, postgresql, jooq, react]
 | API 仕様 | springdoc-openapi | OpenAPI を frontend の型生成に使う |
 | frontend | Vite + React + TypeScript + TanStack Router + TanStack Query(SPA) | ADR-0005。SSR は使わない |
 | backend テスト | JUnit 5、MockMvcTester(aiup `spring-rest-test`)、Testcontainers(PostgreSQL)、ArchUnit | |
-| モジュール構造 | Spring Modulith(モジュールの境界の検査、モジュール間のイベント、モジュール単位の結合テスト) | 本プロジェクト独自(#9)。Spring Boot 4.1 系に対応する版を、導入時に確認する |
+| モジュール構造 | Spring Modulith 2.1 系(モジュールの境界の検査、モジュール間のイベント、モジュール単位の結合テスト)、ArchUnit 1.5 系 | 本プロジェクト独自(#9)。Spring Modulith 2.1.2 が Spring Boot 4.1.2 に合わせて作られていることを確認した(2026-11-11) |
 | frontend テスト | Vitest + Testing Library | |
 | 認証 | ID プロバイダを差し替えられる構成。候補: 簡易な自作、Keycloak | 本プロジェクト独自(#7, #8) |
 | 耐障害性 | リトライ、サーキットブレーカー、タイムアウト。候補: Resilience4j、Spring Framework の標準機能 | 本プロジェクト独自。技術検証を兼ねる(#8) |
 | バッチ | Spring Batch(振替依頼データの作成) | 本プロジェクト独自。技術検証を兼ねる(#8) |
 | 外部サービスのモック | 信用格付・金利指標。遅延・エラーを再現できること。候補: WireMock、テスト用のアダプタ | 本プロジェクト独自(#8) |
-| CI | GitHub Actions(backend: `./mvnw test`、jOOQ 生成物の差分チェック、ArchUnit のミューテーションチェック / frontend: `npm run build` + `npm test`) | |
+| CI | GitHub Actions(backend: `./mvnw test`、jOOQ 生成物の差分チェック、構造テストとその自己テスト / frontend: `npm run build` + `npm test`) | |
 
 ## 元ネタ(ddd-ai)との差分
 

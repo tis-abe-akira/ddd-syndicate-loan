@@ -137,11 +137,11 @@ flowchart TD
 
 ### 2-2. 構造テスト — Spring Modulith と ArchUnit(aiup の外で行う)
 
-aiup のスキルには、構造テストを作るものが無い。最初の `/use-case-implement` の前に、次の順で行う。
+aiup のスキルには、構造テストを作るものが無い。最初の `/use-case-implement` の前に、次の順で行う。**2026-11-11 に 1〜4 を済ませた**(`backend/src/test/java/com/example/syndicateloan/architecture/`)。
 
 1. **骨組み**: `backend/` の Maven プロジェクトと、モジュール(`organization`・`workflow`・`party`・`syndicate`・`facility`・`loan`・`fee`・`transaction`・`shared` など)のパッケージを作る。業務のコードはまだ書かない。
 2. **構造テストを書く**: [設計方針](../architecture/design-principles.md) の「構造テスト」と「ワークフローの独立」の規則を、Spring Modulith(`ApplicationModules.verify()`)と ArchUnit のテストにする。
-3. **規則が効くことを確かめる**: 規則ごとに違反するコードを仕込み、テストが失敗するのを見てから戻す。CI では、run-buddy と同じく違反を仕込むスクリプトで確かめる。
+3. **規則が効くことを確かめる**: 規則ごとに、違反と適合のフィクスチャを用意し、違反で失敗し適合で通ることを JUnit の自己テストで確かめる(`./mvnw test` に含まれるので、CI でも毎回確かめられる)。
 4. **stack.md に書く**: `/stack` の Module layout に、モジュールの一覧と、構造テストのクラスの場所を書く。
 5. 以降、新しいモジュールや規則は、構造テストを先に足してから `/use-case-implement` を実行する。`/use-case-implement` が構造テストを破ったら、規則を弱めずに実装を直す。
 
