@@ -39,7 +39,7 @@ rectangle "シンジケートローン管理システム" {
     usecase "UC-012\nシンジケートへの参加を呼びかける" as UC012
     usecase "UC-013\n開示情報を閲覧する" as UC013
     usecase "UC-014\n参加を回答する" as UC014
-    usecase "UC-015\nファシリティを組成する" as UC015 #LightBlue
+    usecase "UC-015\nファシリティを組成する" as UC015
     usecase "UC-016\nドローダウンを依頼する" as UC016 #LightBlue
     usecase "UC-017\nドローダウンへの拠出を回答する" as UC017 #LightBlue
     usecase "UC-018\nドローダウンを実行する" as UC018 #LightBlue
@@ -60,6 +60,8 @@ rectangle "シンジケートローン管理システム" {
     usecase "UC-033\n引落依頼データを作る" as UC033
     usecase "UC-034\n分配振込依頼データを作る" as UC034
     usecase "UC-035\n振替依頼データをダウンロードする" as UC035
+    usecase "UC-036\n融資案件を謝絶する" as UC036
+    usecase "UC-037\n申し込みを取り下げる" as UC037
 }
 
 opsAdmin --> UC001
@@ -103,6 +105,8 @@ investor --> UC032
 scheduler --> UC033
 scheduler --> UC034
 lead --> UC035
+lead --> UC036
+applicant --> UC037
 
 UC009 ..> UC024 : <<include>>
 UC010 ..> UC024 : <<include>>
@@ -110,6 +114,7 @@ UC012 ..> UC024 : <<include>>
 UC014 ..> UC024 : <<include>>
 UC015 ..> UC024 : <<include>>
 UC017 ..> UC024 : <<include>>
+UC036 ..> UC024 : <<include>>
 
 note right of drafter
   起案者・合議先・承認者・報告先は、
