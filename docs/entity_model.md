@@ -285,7 +285,7 @@ erDiagram
 | currency                  | 通貨(ISO 4217 の3文字)                      | String    | 3                | Not Null                                                                      |
 | requested_term_months     | 希望する期間(月)                            | Integer   | 10               | Not Null, Min: 1, Max: 600                                                    |
 | requested_repayment_method| 希望する返済方法                              | String    | 30               | Not Null, Values: EQUAL_INSTALLMENT, BULLET_PAYMENT                           |
-| status                    | 状態                                          | String    | 30               | Not Null, Values: APPLIED, SCREENING, SYNDICATING, FORMED, DECLINED           |
+| status                    | 状態                                          | String    | 30               | Not Null, Values: APPLIED, SCREENING, PREPARING, FORMING, FORMED, DECLINED, WITHDRAWN |
 | applied_by                | 申し込んだ借り手の申込担当                    | Long      | 19               | Not Null, Foreign Key (APP_USER.id)                                           |
 | applied_at                | 申し込んだ日時                                | DateTime  | -                | Not Null                                                                      |
 | version                   | 楽観的排他制御のバージョン                    | Integer   | 10               | Not Null                                                                      |
@@ -294,6 +294,10 @@ erDiagram
 
 - borrower_organization_id は kind が BORROWER、lead_organization_id は kind が FINANCIAL_INSTITUTION の利用組織である。
 - applied_by は、borrower_organization_id の利用組織の利用者である。
+- status は APPLIED(申込済み)→ SCREENING(審査中)→ PREPARING(組成準備中)→ FORMING(組成中)→ FORMED(組成済み)と進む。SCREENING から PREPARING へは借り手審査の稟議の承認で、FORMING から FORMED へは組成の稟議の承認で進む。組成の稟議が否決されたら FORMING から PREPARING に戻る。
+- APPLIED、SCREENING、PREPARING の間は、謝絶の稟議の承認で DECLINED(謝絶)に、借り手の取り下げで WITHDRAWN(取下げ)になる。FORMING 以降は取り下げられない。
+- 出資者の応諾が集まらない間も status は PREPARING のままとする(組成不調という状態は持たない)。
+- 借り手には、SCREENING、PREPARING、FORMING をまとめて「検討中」として見せる。
 
 ### ATTACHMENT
 
