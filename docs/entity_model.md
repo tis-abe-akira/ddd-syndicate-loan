@@ -335,6 +335,7 @@ erDiagram
 - 一つの融資案件の LEAD_ARRANGER は1つだけで、DEAL の lead_organization_id と同じ金融機関である。
 - organization_id は kind が FINANCIAL_INSTITUTION の利用組織である。
 - status が ACCEPTED なら commitment_amount がある。
+- role が LEAD_ARRANGER の参加者も、リード銀行自身が持分を持つときは commitment_amount を持ち、status は ACCEPTED になる。
 - role が INVESTOR の参加者が INVITED になれるのは、その出資者の SCREENING の result が APPROVED のときだけ。
 
 ### SCREENING
@@ -402,17 +403,17 @@ erDiagram
 
 ### FACILITY_SHARE
 
-ファシリティのシェアパイの中の、一つの出資者の持分。
+ファシリティのシェアパイの中の、一つの参加金融機関の持分。
 
 | Attribute       | Description          | Data Type | Length/Precision | Validation Rules                           |
 |-----------------|----------------------|-----------|------------------|--------------------------------------------|
 | facility_id     | ファシリティ         | Long      | 19               | Primary Key, Foreign Key (FACILITY.id)     |
-| organization_id | 出資者               | Long      | 19               | Primary Key, Foreign Key (ORGANIZATION.id) |
+| organization_id | 参加金融機関         | Long      | 19               | Primary Key, Foreign Key (ORGANIZATION.id) |
 | amount          | 持分(コミットメント額のうちの金額) | Decimal | 19,2   | Not Null, Min: 0.01, Max: 999999999999999  |
 
 #### Constraints
 
-- organization_id は、ファシリティの融資案件で status が ACCEPTED の参加者である。
+- organization_id は、ファシリティの融資案件の参加者で、role が INVESTOR で status が ACCEPTED の出資者か、role が LEAD_ARRANGER のリード銀行である(参加金融機関)。
 
 ### LOAN
 
@@ -434,22 +435,22 @@ erDiagram
 
 ### LOAN_SHARE
 
-ローンのシェアパイの中の、一つの出資者の持分(貸している元本)。
+ローンのシェアパイの中の、一つの参加金融機関の持分(貸している元本)。
 
 | Attribute       | Description                      | Data Type | Length/Precision | Validation Rules                           |
 |-----------------|----------------------------------|-----------|------------------|--------------------------------------------|
 | loan_id         | ローン                           | Long      | 19               | Primary Key, Foreign Key (LOAN.id)         |
-| organization_id | 出資者                           | Long      | 19               | Primary Key, Foreign Key (ORGANIZATION.id) |
+| organization_id | 参加金融機関                     | Long      | 19               | Primary Key, Foreign Key (ORGANIZATION.id) |
 | amount          | 持分(貸している元本の金額)     | Decimal   | 19,2             | Not Null, Min: 0, Max: 999999999999999     |
 
 #### Constraints
 
-- organization_id は、ローンのファシリティに FACILITY_SHARE を持つ出資者である。
-- amount は、同じ出資者の FACILITY_SHARE の amount 以下である。
+- organization_id は、ローンのファシリティに FACILITY_SHARE を持つ参加金融機関である。
+- amount は、同じ参加金融機関の FACILITY_SHARE の amount 以下である。
 
 ### DRAWDOWN
 
-ファシリティから借り手が資金を引き出す取引。出資者の拠出の回答がそろってから実行する。
+ファシリティから借り手が資金を引き出す取引。参加金融機関の拠出の回答がそろってから実行する。
 
 | Attribute             | Description                              | Data Type | Length/Precision | Validation Rules                                           |
 |-----------------------|------------------------------------------|-----------|------------------|------------------------------------------------------------|
@@ -478,12 +479,12 @@ erDiagram
 
 ### DRAWDOWN_CONTRIBUTION
 
-ドローダウンへの、一つの出資者の拠出(配分)と、その回答。
+ドローダウンへの、一つの参加金融機関の拠出(配分)と、その回答。
 
 | Attribute           | Description                                       | Data Type | Length/Precision | Validation Rules                                            |
 |---------------------|---------------------------------------------------|-----------|------------------|-------------------------------------------------------------|
 | drawdown_id         | ドローダウン                                      | Long      | 19               | Primary Key, Foreign Key (DRAWDOWN.id)                      |
-| organization_id     | 出資者                                            | Long      | 19               | Primary Key, Foreign Key (ORGANIZATION.id)                  |
+| organization_id     | 参加金融機関                                      | Long      | 19               | Primary Key, Foreign Key (ORGANIZATION.id)                  |
 | requested_amount    | 拠出の依頼額。ファシリティのシェアパイで按分し、リード銀行が指定し直せる | Decimal   | 19,2             | Not Null, Min: 0, Max: 999999999999999                      |
 | answer              | 回答                                              | String    | 20               | Not Null, Values: PENDING, ACCEPTED, DECLINED, INCREASED     |
 | answered_amount     | 回答した拠出額                                    | Decimal   | 19,2             | Optional, Min: 0, Max: 999999999999999                      |
@@ -491,11 +492,11 @@ erDiagram
 
 #### Constraints
 
-- organization_id は、ドローダウンのファシリティに FACILITY_SHARE を持つ出資者である。
+- organization_id は、ドローダウンのファシリティに FACILITY_SHARE を持つ参加金融機関である。
 - 一つのドローダウンの requested_amount の合計は、ドローダウンの amount に等しい。
 - answer が ACCEPTED なら answered_amount は requested_amount に等しく、DECLINED なら 0、INCREASED なら requested_amount より大きい。
 - answer が PENDING でなければ answered_amount がある。
-- requested_amount と answered_amount は、その出資者の拠出の余地(FACILITY_SHARE の amount − LOAN_SHARE の amount)以下である。
+- requested_amount と answered_amount は、その参加金融機関の拠出の余地(FACILITY_SHARE の amount − LOAN_SHARE の amount)以下である。
 - answer は、回答の稟議が最終決裁で承認されたときに PENDING から変わる。requested_amount が指定し直されたら、answer は PENDING に戻る。
 
 ### REPAYMENT_SCHEDULE_ITEM
@@ -540,12 +541,12 @@ erDiagram
 
 ### REPAYMENT_DISTRIBUTION
 
-元本・利息の入金を、入金時点のローンのシェアパイで按分した、一つの出資者への配分。
+元本・利息の入金を、入金時点のローンのシェアパイで按分した、一つの参加金融機関への配分。
 
 | Attribute       | Description          | Data Type | Length/Precision | Validation Rules                           |
 |-----------------|----------------------|-----------|------------------|--------------------------------------------|
 | repayment_id    | 入金                 | Long      | 19               | Primary Key, Foreign Key (REPAYMENT.id)    |
-| organization_id | 出資者               | Long      | 19               | Primary Key, Foreign Key (ORGANIZATION.id) |
+| organization_id | 参加金融機関         | Long      | 19               | Primary Key, Foreign Key (ORGANIZATION.id) |
 | principal       | 元本の配分           | Decimal   | 19,2             | Not Null, Min: 0, Max: 999999999999999     |
 | interest        | 利息の配分           | Decimal   | 19,2             | Not Null, Min: 0, Max: 999999999999999     |
 
@@ -581,7 +582,7 @@ erDiagram
 
 ### FEE_DISTRIBUTION
 
-手数料の入金を、受益者に配った一件の配分。出資者に配るときはファシリティのシェアパイで按分する。
+手数料の入金を、受益者に配った一件の配分。参加金融機関に配るときはファシリティのシェアパイで按分する。
 
 | Attribute       | Description    | Data Type | Length/Precision | Validation Rules                           |
 |-----------------|----------------|-----------|------------------|--------------------------------------------|
