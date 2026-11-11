@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 **Date:** 2026-11-10
-**Requirements:**
+**Requirements:** NFR-001
 
 <!-- 2026-11-11: 旧 docs/adr/0001-multiple-drawdowns-and-loan-share-pie.md(ADR-0001)を aiup の ADR 形式に移した。決定の内容は変えていない。**Requirements:** は docs/requirements.md ができたあと、/architecture-decision ADR-001 link で埋める。 -->
 
