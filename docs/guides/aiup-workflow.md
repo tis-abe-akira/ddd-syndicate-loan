@@ -131,13 +131,13 @@ flowchart TD
   | サービス | `spring-service` | `spring-service-test` |
   | REST API | `spring-rest` | `spring-rest-test` |
   | UI(React) | なし(aiup の範囲外。下の未決事項を参照) | なし |
-- **Module layout**: [設計方針](../architecture/design-principles.md) は単一モジュールの package by feature で、依存の向きは `web → ドメイン ← persistence`。`spring-service` の flat / hexagonal のどちらに当てるかを、ここで決める。Spring Modulith のモジュール(`workflow` を含む)も、ここに書く。
+- **Module layout**: [設計方針](../architecture/design-principles.md) は単一モジュールの package by feature で、依存の向きは `web → ドメイン ← persistence`。`spring-service` の flat / hexagonal のどちらに当てるかを、ここで決める。Spring Modulith のモジュール(`organization`・`workflow` を含む。ADR-002・003)も、ここに書く。
 
 ### 2-2. 構造テスト — Spring Modulith と ArchUnit(aiup の外で行う)
 
 aiup のスキルには、構造テストを作るものが無い。最初の `/use-case-implement` の前に、次の順で行う。
 
-1. **骨組み**: `backend/` の Maven プロジェクトと、モジュール(`party`・`syndicate`・`facility`・`loan`・`fee`・`transaction`・`workflow`・`shared` など)のパッケージを作る。業務のコードはまだ書かない。
+1. **骨組み**: `backend/` の Maven プロジェクトと、モジュール(`organization`・`workflow`・`party`・`syndicate`・`facility`・`loan`・`fee`・`transaction`・`shared` など)のパッケージを作る。業務のコードはまだ書かない。
 2. **構造テストを書く**: [設計方針](../architecture/design-principles.md) の「構造テスト」と「ワークフローの独立」の規則を、Spring Modulith(`ApplicationModules.verify()`)と ArchUnit のテストにする。
 3. **規則が効くことを確かめる**: 規則ごとに違反するコードを仕込み、テストが失敗するのを見てから戻す。CI では、run-buddy と同じく違反を仕込むスクリプトで確かめる。
 4. **stack.md に書く**: `/stack` の Module layout に、モジュールの一覧と、構造テストのクラスの場所を書く。

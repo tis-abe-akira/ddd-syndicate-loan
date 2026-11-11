@@ -1,7 +1,7 @@
 ---
 type: architecture
 title: 設計方針
-description: run-buddy の設計方針(不変なドメイン型、ポート&アダプタ、jOOQ、契約テスト、ArchUnit)を、シンジケートローンのドメインに当てはめた方針と未決事項。
+description: run-buddy の設計方針(不変なドメイン型、ポート&アダプタ、jOOQ、契約テスト、ArchUnit)を、シンジケートローンのドメインに当てはめた方針と、workflow・organization モジュールの独立(ADR-002・003)、構造テスト、未決事項。
 tags: [architecture, ddd, ports-and-adapters, testing, jooq, archunit]
 ---
 
@@ -19,7 +19,9 @@ run-buddy の `backend/CLAUDE.md` と ADR-0004 / ADR-0007 の方針を、本シ�
 
 | パッケージ | 内容 |
 |---|---|
-| `party` | Company / Borrower / Investor |
+| `organization` | 利用組織・利用者・ロール・職位([ADR-003](decisions/ADR-003-shared-organization-module.md))。シンジケートローンの知識を持たない |
+| `workflow` | 承認ワークフロー(稟議)([ADR-002](decisions/ADR-002-independent-workflow-module.md))。業務に依存しない |
+| `party` | 借り手・出資者の業務上の情報(融資案件での立場、審査など)。利用組織そのものは `organization` |
 | `syndicate` | Syndicate |
 | `facility` | Facility / SharePie / FacilityInvestment |
 | `loan` | Drawdown / Loan / Payment / PaymentDetail / AmountPie / PaymentDistribution |
@@ -31,9 +33,9 @@ run-buddy の `backend/CLAUDE.md` と ADR-0004 / ADR-0007 の方針を、本シ�
 
 依存の向きは `web → ドメイン ← persistence`。ドメインは `web` と `persistence` に依存しない。パッケージ間の依存規則は ArchUnit で検査する。
 
-### ワークフローの独立(NFR-09)
+### ワークフローの独立(NFR-010)
 
-承認ワークフローは、将来、汎用のワークフロー SaaS として切り出す。そのため、最初から**業務と疎結合な独立モジュール `workflow`** として作る(方針案。`/requirements` の後に ADR にする)。
+承認ワークフローは、将来、汎用のワークフロー SaaS として切り出す。そのため、最初から**業務と疎結合な独立モジュール `workflow`** として作る。決定は [ADR-002](decisions/ADR-002-independent-workflow-module.md)(ワークフローの独立)と [ADR-003](decisions/ADR-003-shared-organization-module.md)(組織・職位の持ち主)。この節はその要約で、食い違ったら ADR を正とする。
 
 ```mermaid
 flowchart LR
@@ -45,20 +47,27 @@ flowchart LR
         EV[公開イベント<br/>承認済・否決・差し戻し]
         CORE[内部<br/>経路・合議・状態・再起案判定]
     end
+    ORG[organization モジュール<br/>利用組織・利用者・ロール・職位]
     biz -->|申請する| API
     EV -.イベントを購読.-> biz
     API --> CORE --> EV
+    CORE -->|承認者を引く| ORG
+    biz -->|利用組織・利用者を参照| ORG
 ```
+
+SaaS として切り出すときは、`workflow` と `organization` を一緒に持ち出す。
 
 | 規則 | 理由 |
 |---|---|
-| `workflow` は、業務モジュール(`party`・`syndicate`・`facility`・`loan`・`fee`・`transaction`)のどれにも依存しない | 切り出すときに業務コードを持ち出さない |
+| `workflow` は、業務モジュール(`party`・`syndicate`・`facility`・`loan`・`fee`・`transaction`)のどれにも依存しない。依存してよいのは `organization` だけ | 切り出すときに業務コードを持ち出さない |
 | 業務モジュールは、`workflow` の公開 API(Spring Modulith の named interface)だけを使う | 内部の作りを変えても業務側が壊れない |
 | 承認の結果は、`workflow` が公開イベント(承認済・否決・差し戻し)を出し、業務モジュールが購読して業務の処理をする。`workflow` が業務のコードを呼び返すことはない | 依存の向きを一方向にする |
 | 申請の対象は、`workflow` から見て不透明な参照(種類と ID の文字列)で持つ | 業務のエンティティを知らずに済む |
 | 承認経路を決める入力(金額、クレジットスコアなど)は、業務側が「経路属性」として値で渡す。経路の規則(属性と最終決裁の階層の対応)は、組織ごとに `workflow` の中で設定する | 業務ごとの判断基準を、汎用の規則として扱う |
 | 否決後の再起案の判定(条件が変わったか)は、業務側が「条件」を値で渡し、`workflow` が前回の値と比べる | 判定の仕組みを汎用にする |
-| 組織・職位・承認者の割り当ては、`workflow` が持つ(認証の層から利用者を受け取る) | SaaS として単体で動かせる |
+| 利用組織・利用者・ロール・職位は、共通の `organization` モジュールが持つ。`workflow` と業務の両方がその公開 API を使い、データを複製しない。`organization` はどのモジュールにも依存しない(ADR-003) | 正を1つにして同期を不要にする。組織・職位はもともと汎用なので、`workflow` と一緒に持ち出せる |
+| ID プロバイダからは利用者の識別だけを受け取り、ロールと職位は `organization` が持つ(ADR-003) | ID プロバイダを差し替えても、ロールと職位を移さずに済む(NFR-013) |
+| 融資案件ごとの立場(リード銀行・出資者)は、業務モジュールが持つ | シンジケートローン固有の知識を `organization` に入れない |
 | テナントは組織とする。他の組織の申請は見えない | 各社の稟議が社内で閉じる要件(06)と、SaaS のテナント分離を同じ仕組みで満たす |
 | `workflow` のテーブルは専用のスキーマに置き、業務のテーブルへの外部キーを持たない | データごと切り出せる |
 | 通知は、`workflow` のイベントを通知の仕組みが受けて送る(07 の通知) | 通知の手段を `workflow` に持ち込まない |
@@ -83,7 +92,7 @@ flowchart LR
 
 | ツール | 検査すること |
 |---|---|
-| Spring Modulith(`ApplicationModules.verify()`) | モジュール間の依存が循環しない。他のモジュールの内部(公開 API 以外)を参照しない。`workflow` が業務モジュールに依存しない |
+| Spring Modulith(`ApplicationModules.verify()`) | モジュール間の依存が循環しない。他のモジュールの内部(公開 API 以外)を参照しない。`workflow` が依存するのは `organization` だけ。`organization` はどのモジュールにも依存しない |
 | ArchUnit | モジュールの中の規則。ドメインが `web`・`persistence`(アダプタ)に依存しない。ドメイン型に永続化・Spring のアノテーションを付けない。ドメイン型は `record` か `final`。`@Transactional` なクラスが実装するポートに `default` メソッドを置かない。外部連携のライブラリ(耐障害性、jOOQ など)をドメインで使わない |
 
 - 規則は、モジュールを作る前に、そのモジュールの規則から書く。新しいモジュールや規則を足すときも、構造テストを先に足す。
