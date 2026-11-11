@@ -126,7 +126,7 @@ flowchart LR
 
 ### 決定済み
 
-ddd-ai との不一致2点は、書籍に合わせることにした(2026-11-10)。[ADR-0001](../adr/0001-multiple-drawdowns-and-loan-share-pie.md) を参照。
+ddd-ai との不一致2点は、書籍に合わせることにした(2026-11-10)。[ADR-001](../architecture/decisions/ADR-001-multiple-drawdowns-and-loan-share-pie.md) を参照。
 
 1. **複数回のドローダウン**を許す。
 2. **Loan に Share Pie を持たせる**。具体例は [Share Pie の数値例とテストケース](05-share-pie-examples.md)。

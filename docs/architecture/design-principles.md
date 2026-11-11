@@ -13,7 +13,7 @@ run-buddy の `backend/CLAUDE.md` と ADR-0004 / ADR-0007 の方針を、本シ�
 
 - ドメイン型は不変な `record` か `final` クラスとし、**自分で不変条件を検査する**。setter、引数なしコンストラクタ、永続化用アノテーションを持たせない。
 - 値の概念は値オブジェクトにする。例: `Money`(通貨付き金額)、`Percentage`(持分比率)。丸めと合計の一致(NFR-01)はここで守る。
-- 業務ルール([BR-xx](../requirements/03-business-rules.md))は、検証・計算・状態遷移をドメイン層に置き、単体でテストできるようにする。
+- 業務ルール([BR-xx](../brief/03-business-rules.md))は、検証・計算・状態遷移をドメイン層に置き、単体でテストできるようにする。
 
 ### 想定するパッケージ(package by feature)
 
@@ -47,15 +47,16 @@ run-buddy の `backend/CLAUDE.md` と ADR-0004 / ADR-0007 の方針を、本シ�
 
 ## 4. テスト
 
-- 業務ルールは、外部依存のない単体テストで、境界値を含めて先に書く。返済スケジュール(BR-10, BR-11)は、既知の数値例で合計が元本と一致することを検査する。
+- テストの正はユースケース仕様(`docs/use_cases/`)。順序は aiup に従い、`/use-case-implement` で実装し、`/use-case-test` でテストを書き、`/use-case-coverage` で抜けを確かめる。仕様と食い違うテストは、コードに合わせて直さず失敗のままにする。
+- 業務ルールは、許可される側と拒否される側の両方の境界値をテストする。返済スケジュールなどの計算は、既知の数値例([Share Pie の数値例](../brief/05-share-pie-examples.md) の EX-xx)で、合計が元本と一致することを検査する。
 - リポジトリの振る舞いは契約テスト(インターフェースにテストを書き、各アダプタのテストがそれを実装する)で一度だけ定める。新しいメソッドは契約テストから書く。
 - DB を使うテストは Testcontainers(PostgreSQL)で行い、他のテストのデータに依存しない。
-- Web 層は `@WebMvcTest` + MockMvc。
+- REST API 層は、aiup の `spring-rest-test` に従い、実際のサービスと DB を通して(MockMvcTester + Testcontainers)テストする。
 - ArchUnit でパッケージ依存・ポートの規則を検査し、規則自体の有効性もミューテーションチェックで確認する。
 
 ## 5. 未決事項
 
-- 集約の境界(例: Facility と FacilityInvestment を同一集約にするか、Loan と PaymentDetail をどう束ねるか)。Share Pie は値オブジェクトとし、Facility と Loan がそれぞれ持つことは [ADR-0001](../adr/0001-multiple-drawdowns-and-loan-share-pie.md) で決定済み。
+- 集約の境界(例: Facility と FacilityInvestment を同一集約にするか、Loan と PaymentDetail をどう束ねるか)。Share Pie は値オブジェクトとし、Facility と Loan がそれぞれ持つことは [ADR-001](decisions/ADR-001-multiple-drawdowns-and-loan-share-pie.md) で決定済み。
 - Transaction の継承階層(ddd-ai は JPA の継承)を、ドメインでは sealed interface と record で表すか。
 - ドメインイベント(ddd-ai の Spring Events による連携)を導入するか、アプリケーション層の明示的な呼び出しにするか。
 - 状態遷移と複数集約にまたがる更新(ファシリティ組成時の Borrower / Investor の RESTRICTED 化)の置き場所。

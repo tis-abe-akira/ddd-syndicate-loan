@@ -11,7 +11,7 @@ tags: [requirements, non-functional, scope, roadmap]
 
 - 目的: シンジケートローンを題材に、ドメイン駆動設計(DDD)とオブジェクト指向設計、テスト技法を適用した Java システム開発を、Claude Code で自動化する取り組みの実証とする。
 - 本システムは学習・デモンストレーション用であり、実際の金融取引には使用しない。
-- 元ネタ([ddd-ai](https://github.com/tis-abe-akira/ddd-ai))は、軽量な3層構成・JPA・インメモリ DB で実装されている。本プロジェクトは同じ業務範囲を、[docs/arch](../arch/index.md) の技術スタックで再構築する。
+- 元ネタ([ddd-ai](https://github.com/tis-abe-akira/ddd-ai))は、軽量な3層構成・JPA・インメモリ DB で実装されている。本プロジェクトは同じ業務範囲を、[docs/architecture](../architecture/index.md) の技術スタックで再構築する。
 
 ## 2. 対象範囲
 
