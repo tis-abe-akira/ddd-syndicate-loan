@@ -24,7 +24,7 @@ sources:
 | `docs/entity_model.md` | 作成済み(2026-11-11) |
 | `docs/use_cases.puml` | 作成済み(2026-11-11)。UC-001〜UC-035 |
 | `docs/use_cases/` | 作成中(UC-001 から順に) |
-| `docs/architecture/stack.md` | 未作成。2 で作る |
+| `docs/architecture/stack.md` | 作成済み(2026-11-11) |
 | `docs/architecture/decisions/` | [ADR-001](../architecture/decisions/ADR-001-multiple-drawdowns-and-loan-share-pie.md) を aiup 形式で置いた。`**Requirements:**` は空 |
 | `docs/open_questions.md` | **作らない。** 仕様の未決事項は GitHub Issue(`[要確認]`)で管理する(AGENTS.md「仕様の未決事項は GitHub Issue で管理する」) |
 
