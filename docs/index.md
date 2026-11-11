@@ -10,7 +10,7 @@ aiup スキルが作り、aiup の形式で管理する。仕様の正はここ�
 * [glossary.md](glossary.md) - 用語集。`/requirements` が作る用語と、使わない同義語
 * [entity_model.md](entity_model.md) - エンティティモデル。`/entity-model` が作る ER 図と属性表
 * [use_cases.puml](use_cases.puml) - ユースケース図。`/use-case-diagram` が作るアクターと UC-XXX
-* `use_cases/` - ユースケース仕様。`/use-case-spec UC-XXX` が1件ずつ作る(作成済み: UC-001〜UC-002)
+* `use_cases/` - ユースケース仕様。`/use-case-spec UC-XXX` が1件ずつ作る(作成済み: UC-001〜UC-002、UC-015〜UC-019)
 
 # 未決事項
 
