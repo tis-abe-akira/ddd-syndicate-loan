@@ -24,7 +24,7 @@ sources:
 | `docs/entity_model.md`、`docs/use_cases.puml`、`docs/use_cases/` | 未作成 |
 | `docs/architecture/stack.md` | 未作成。2 で作る |
 | `docs/architecture/decisions/` | [ADR-001](../architecture/decisions/ADR-001-multiple-drawdowns-and-loan-share-pie.md) を aiup 形式で置いた。`**Requirements:**` は空 |
-| `docs/open_questions.md` | 未作成。今の未決事項は GitHub Issue(`[要確認]`)にある。1-1 で移す |
+| `docs/open_questions.md` | **作らない。** 仕様の未決事項は GitHub Issue(`[要確認]`)で管理する(AGENTS.md「仕様の未決事項は GitHub Issue で管理する」) |
 
 brief の ID(`FR-01`・`BR-01`・`NFR-01`・`EX-01`)は元資料の中だけで使う。aiup の成果物では aiup の ID(`FR-001`・`UC-001` の `BR-001` など)を新たに振る。
 
@@ -62,16 +62,16 @@ flowchart TD
   COV --> ACC
 ```
 
-迷ったら、いつでも `/next` を実行する。読むだけで、次に実行するコマンドとその理由を出してくれる。仕様の質問が出たら、どの段階でも `/open-questions` で記録する。
+迷ったら、いつでも `/next` を実行する。読むだけで、次に実行するコマンドとその理由を出してくれる。仕様の質問が出たら、どの段階でも GitHub Issue に `[要確認]` として起票する。`/next` は Issue を見ないので、開いている `[要確認]` の Issue も合わせて確認する。
 
 ## 1. 仕様の整備(Inception / Elaboration)
 
 ### 1-1. `/requirements` — 要件カタログと用語集
 
 - **入力**: [brief](../brief/index.md) の 01〜07 と、GitHub Issue の `[要確認]`。`docs/vision.md` は無いので、実行するときに「`docs/brief/` を project brief として使う」と指示する。
-- **出力**: `docs/requirements.md`(FR / NFR / C の表)、`docs/glossary.md`、`docs/open_questions.md`(質問が残れば)。
+- **出力**: `docs/requirements.md`(FR / NFR / C の表)、`docs/glossary.md`。質問が残れば `[要確認]` の Issue に起票する。
 - **付加価値**: FR がユーザーストーリー形式になる。NFR に測れる閾値が付く。制約(C)が分かれる。用語集の「使わない同義語」を `/spec-review` が検査する。要件の Status がユースケースから追える。
-- **Issue の移し方**: 開いている `[要確認]` の Issue を、関係する FR / NFR / C / 用語の質問として `docs/open_questions.md` に記録する。移したら、Issue に移し先の OQ-XXX を書いて閉じる(閉じるのは人が確認してから)。
+- **Issue との対応**: 開いている `[要確認]` の Issue は Issue のまま残す。関係する FR / NFR / C / 用語が決まったら、Issue に対応する ID を書く。決着した Issue は、決定をカタログに反映して人が確認してからクローズする。
 - **注意**: brief の業務ルール(`BR-xx`)はカタログに入らない。1-5 でユースケースの業務ルールになる。
 
 ### 1-2. `/architecture-decision ADR-001 link …` — ADR と要件を結ぶ

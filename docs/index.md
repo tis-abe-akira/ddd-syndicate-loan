@@ -8,7 +8,10 @@ aiup スキルが作り、aiup の形式で管理する。仕様の正はここ�
 
 * `requirements.md`(未作成。できたらリンクにする) - 要件カタログ。`/requirements` が作る FR / NFR / C
 * `glossary.md`(未作成。できたらリンクにする) - 用語集。`/requirements` が作る用語と、使わない同義語
-* `open_questions.md`(未作成。できたらリンクにする) - 未決事項。`/open-questions` が管理する仕様の質問
+
+# 未決事項
+
+* [GitHub Issue の `[要確認]`](https://github.com/tis-abe-akira/ddd-syndicate-loan/issues?q=is%3Aissue+is%3Aopen+%5B%E8%A6%81%E7%A2%BA%E8%AA%8D%5D) - 仕様の未決事項。aiup の `open_questions.md` は使わない
 
 # プロジェクト概要資料(brief)
 

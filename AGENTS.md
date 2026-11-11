@@ -12,7 +12,7 @@ AI エージェント(Claude Code など)向けの、このリポジトリでの
 
 ## aiup の流儀に従う
 
-aiup の成果物は、aiup の形式・置き場所・ID に従う。このリポジトリ独自の流儀とぶつかったら、aiup を優先する。
+aiup の成果物は、aiup の形式・置き場所・ID に従う。このリポジトリ独自の流儀とぶつかったら、aiup を優先する。**例外は未決事項の管理だけで、GitHub Issue を使う(下の「仕様の未決事項は GitHub Issue で管理する」)。**
 
 | 成果物 | 置き場所 | 作る・直すスキル |
 |---|---|---|
@@ -23,12 +23,21 @@ aiup の成果物は、aiup の形式・置き場所・ID に従う。このリ�
 | テストケース(TC-001、業務を通したもの) | `docs/test_cases/` | `/test-case` |
 | ADR(ADR-001) | `docs/architecture/decisions/` | `/architecture-decision` |
 | スタックファイル | `docs/architecture/stack.md` | `/stack` |
-| 未決事項(OQ-001) | `docs/open_questions.md` | `/open-questions` |
 
 - 上の成果物は、各スキルを通して作り、直す。手で直したら `/spec-review` を通す。
 - 上の成果物には OKF のフロントマターを付けず、そのフォルダに `index.md` も置かない(aiup の形式とスクリプトを優先)。上の階層の `index.md`(`docs/index.md`、`docs/architecture/index.md`)からリンクする。
-- 仕様の穴は推測で埋めず、`/open-questions` で `docs/open_questions.md` に記録する。GitHub Issue は作業の管理に使い、仕様の質問の正にはしない。
+- 仕様の穴は推測で埋めず、GitHub Issue に記録する(次節)。
 - `TC-` は aiup のテストケース専用。単体テストの数値例は `EX-` を使う。
+
+## 仕様の未決事項は GitHub Issue で管理する
+
+仕様の未決事項(仕様の穴、矛盾、決めるべき選択肢)の正は、**GitHub Issue** とする。aiup の `docs/open_questions.md`(OQ-XXX)と `/open-questions` は使わない。
+
+- **起票**: タイトルの先頭に `[要確認]` を付ける。本文には「背景」「決めたいこと」(選択肢があれば並べる)「参照」(関係する文書と ID、親や関連の Issue 番号)を書く。
+- **aiup のスキルとの関係**: スキルが「`docs/open_questions.md` に記録する」「`/open-questions` を実行する」と指示した場合は、その質問を代わりに Issue に起票し、報告に Issue 番号を書く。スキルが「blocking な質問」で作業を止める場面では、開いている `[要確認]` の Issue を同じ扱いにする。
+- **決まったら**: 決定を Issue にコメントし、仕様(`docs/requirements.md`、ユースケース、エンティティモデル、ADR など)に反映する。反映を人が確認したらクローズする。
+- **作業の管理**: 未決事項以外のタスクにも Issue を使ってよい。未決事項と見分けられるよう、タイトルの `[要確認]` で区別する。
+- **トレードオフ**: `/next` と `/spec-review` は `docs/open_questions.md` だけを見るため、Issue の未決事項を数えない。進める前に、開いている `[要確認]` の Issue を確認する。
 
 ## ドキュメントの書き方
 
