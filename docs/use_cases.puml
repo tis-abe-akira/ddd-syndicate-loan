@@ -39,11 +39,11 @@ rectangle "シンジケートローン管理システム" {
     usecase "UC-012\nシンジケートへの参加を呼びかける" as UC012
     usecase "UC-013\n開示情報を閲覧する" as UC013
     usecase "UC-014\n参加を回答する" as UC014
-    usecase "UC-015\nファシリティを組成する" as UC015
-    usecase "UC-016\nドローダウンを依頼する" as UC016
-    usecase "UC-017\nドローダウンへの拠出を回答する" as UC017
-    usecase "UC-018\nドローダウンを実行する" as UC018
-    usecase "UC-019\n返済の入金を記録する" as UC019
+    usecase "UC-015\nファシリティを組成する" as UC015 #LightBlue
+    usecase "UC-016\nドローダウンを依頼する" as UC016 #LightBlue
+    usecase "UC-017\nドローダウンへの拠出を回答する" as UC017 #LightBlue
+    usecase "UC-018\nドローダウンを実行する" as UC018 #LightBlue
+    usecase "UC-019\n返済の入金を記録する" as UC019 #LightBlue
     usecase "UC-020\n手数料の入金を記録する" as UC020
     usecase "UC-021\n遅延を一覧する" as UC021
     usecase "UC-022\n取引履歴を照会する" as UC022
