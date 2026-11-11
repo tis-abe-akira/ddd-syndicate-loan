@@ -6,8 +6,8 @@ okf_version: "0.2"
 
 aiup スキルが作り、aiup の形式で管理する。仕様の正はここ。まだ無いものは、[実行順序](guides/aiup-workflow.md) に沿って作る。
 
-* `requirements.md`(未作成。できたらリンクにする) - 要件カタログ。`/requirements` が作る FR / NFR / C
-* `glossary.md`(未作成。できたらリンクにする) - 用語集。`/requirements` が作る用語と、使わない同義語
+* [requirements.md](requirements.md) - 要件カタログ。`/requirements` が作る FR / NFR / C
+* [glossary.md](glossary.md) - 用語集。`/requirements` が作る用語と、使わない同義語
 
 # 未決事項
 
