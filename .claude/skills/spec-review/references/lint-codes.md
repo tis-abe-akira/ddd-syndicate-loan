@@ -1,0 +1,95 @@
+<!--
+Copyright 2025-2026 Simon Martinelli and the AI Unified Process contributors.
+Part of the AI Unified Process — https://unifiedprocess.ai
+Licensed under the Apache License, Version 2.0. See LICENSE and NOTICE.
+-->
+
+# Lint Codes
+
+`scripts/spec_lint.py` prints one line per finding:
+
+```text
+docs/use_cases/UC-004-book-room.md:12: ERROR DANGLING_REF [UC-004]: requirement FR-019 is not in requirements.md
+```
+
+The format is `path:line: SEVERITY CODE [element]: message`. Line `0` means the finding concerns the whole file.
+The exit code is 0 when the run is clean, 1 on any `ERROR` (with `--strict`, also on any `WARN`), and 2 on usage
+errors. A baseline file that is not valid JSON, or holds an entry without `fingerprint`, is such an error: the run
+exits 2 with a message and lints nothing (`--next` ignores the baseline and still exits 0). A file that is not UTF-8
+is read anyway and named on stderr; there is no lint code for it.
+
+## Cross-file codes
+
+In a project split by module, "`use_cases.puml`" below stands for the overview and every module diagram
+`use_cases/<module>/use_cases.puml` together, and "`use_cases/UC-XXX-*.md`" for a specification in any module
+folder; entity headings are read from `entity_model.md` and every `entity_model/<module>.md`. Open questions are
+the `## OQ-XXX:` sections of `open_questions.md`, in the format of the `open-questions` skill; only `Open` and
+`Answered` questions are checked against the specification, because `Resolved` and `Withdrawn` ones are history.
+Architecture decisions are the files under a `decisions/`, `adr/`, or `adrs/` folder anywhere in `docs/` whose name or title carries
+`ADR-XXX`, in the format of the `architecture-decision` skill; other formats count when they have a `## Status`
+section or `status:` front matter. They are the team's documents, so only a link to nothing and a duplicate id are
+errors.
+
+| Severity | Code                    | Meaning                                                                                        | Fix with            |
+|----------|-------------------------|------------------------------------------------------------------------------------------------|---------------------|
+| ERROR    | `SPEC_MISSING`          | A use case in `use_cases.puml` has no `use_cases/UC-XXX-*.md`                                  | `/use-case-spec`    |
+| ERROR    | `NOT_IN_DIAGRAM`        | A specification (not `Obsolete`) whose use case is not in `use_cases.puml`                    | `/use-case-diagram` |
+| ERROR    | `DUPLICATE_ID`          | A UC, TC, BP, FR, NFR, C, OQ, or ADR id, or an entity heading, is used twice — also a use case in two module diagrams or an entity in two module files | the owning skill |
+| ERROR    | `DANGLING_REF`          | An FR, NFR, or C id in `**Requirements:**`, a `UC-xxx BR-yyy` citation, a UC link in a test case, a `**Process:**` link or `BP-XXX` id, the `**Element:**` of an open question, or an id in an ADR's `**Requirements:**`, `**Supersedes:**`, or `**Superseded by:**` line points to nothing | the owning skill |
+| ERROR    | `BPMN_UNMAPPED`         | A BPMN activity whose name carries no known use case id and matches no use case title         | `/use-case-diagram`, then `/business-process BP-XXX` |
+| ERROR    | `BPMN_INVALID`          | A `.bpmn` file that cannot be parsed                                                          | the modeling tool   |
+| ERROR    | `MODULE_UNKNOWN`        | A `package` of the module overview `use_cases.puml` without a folder `use_cases/<alias>/use_cases.puml`, or such a folder without a `package` of that alias; a `_` in the alias stands for a `-` in the folder name | `/use-case-diagram` |
+| ERROR    | `OQ_BLOCKING`           | A use case at `Tested` or `Done` while a blocking open question on it is `Open` or `Answered`; a question on an FR, NFR, or C counts against every use case that links it | `/use-case-spec`, `/requirements` |
+| ERROR    | `OQ_INVALID`            | An open question without an `**Element:**`, `**Raised by:**`, `**Blocking:**`, or `**Status:**` line, with an unknown status, Blocking other than Yes or No, an element of no known form or naming more than one element (`UC-001 A1, A2`), or `Answered` without `**Answer:**`, `Resolved` without `**Resolved in:**`, `Withdrawn` without `**Withdrawn:**` | `/open-questions` |
+| ERROR    | `BP_ID_MISMATCH`        | A process model whose `BP-XXX` process id and file name prefix (`BP-XXX-<name>.bpmn`) differ  | `/business-process` |
+| WARN     | `ACTOR_MISMATCH`        | A primary or secondary actor of a specification that `use_cases.puml` does not connect to the use case (or does not declare), or an actor the diagram connects that the specification does not list. Actors are compared by name, primary and secondary together; an actor inherits its parent's links (`Manager --|> Clerk`); a use case the diagram connects to no actor is skipped | `/use-case-spec` or `/use-case-diagram` |
+| WARN     | `MODULE_MISMATCH`       | A specification that does not lie in the folder of the module whose diagram holds its use case | move the file       |
+| WARN     | `FR_UNCOVERED`          | An FR (not `Rejected` or `Deferred`) that no active use case lists in `**Requirements:**`      | `/use-case-spec` (or `/use-case-diagram` when no use case fits) |
+| WARN     | `REQ_STATUS_DRIFT`      | A requirement's progress status (Open, In Progress, Implemented, Verified) differs from the one the `**Status:**` of its linking use cases gives it | `/requirements` |
+| WARN     | `SPEC_CHANGED_AFTER_STATUS` | A use case at `Implemented`, `Tested`, or `Done` whose text, or the text of a requirement it links, changed after the commit that set its status; a new priority or status does not count. Needs Git history, and finds nothing without it | `/use-case-coverage UC-XXX` (`/coverage-check UC-XXX`); see the skill's After the Report |
+| WARN     | `OQ_BLOCKING`           | The same at `Approved` or `Implemented`: the use case should not have been approved, or the answer is still missing | `/open-questions`, `/use-case-spec` |
+| WARN     | `OQ_UNRESOLVED`         | An open question is `Answered`, but the answer is not in the specification yet               | `/use-case-spec`, `/requirements`, `/entity-model` |
+| WARN     | `ADR_UNLINKED`          | A `Proposed` or `Accepted` ADR whose `**Requirements:**` line links no NFR or C (an FR alone does not count): a decision is justified by a quality or a constraint | `/architecture-decision ADR-XXX link NFR-YYY` (`/requirements` first when the row is missing) |
+| WARN     | `ADR_STALE`             | A `Proposed` or `Accepted` ADR links a `Rejected` or `Deferred` requirement; or an ADR supersedes one that is not `Superseded`, or the two do not name each other in `**Supersedes:**` and `**Superseded by:**` | `/architecture-decision` |
+| WARN     | `ADR_INVALID`           | An ADR without a status, with a status other than Proposed, Accepted, Superseded, Deprecated, or Rejected, without a date, or `Superseded` without the ADR that replaced it | `/architecture-decision` |
+| WARN     | `MOCKUP_MISSING_FILE`   | A relative link on a use case's `**Mockup:**` line points to a file that does not exist; URLs are not checked, and a use case without a mockup is never reported | `/use-case-spec`    |
+| WARN     | `API_UNRESOLVED`        | A relative link on a use case's `**API:**` line points to a file that does not exist, or the file has no `operationId`, AsyncAPI channel, or operation by the link's fragment; URLs are not checked, and a use case without the line is never reported | `/use-case-spec`    |
+| WARN     | `BR_DUPLICATE`          | Two use cases carry the same rule text; keep it in one and cite it as `UC-xxx BR-yyy`          | `/use-case-spec`    |
+| WARN     | `WEAK_WORD`             | A vague or optional word ("fast", "appropriate", "etc.", "and/or", "should", "ggf.", …)        | the owning skill    |
+| WARN     | `GLOSSARY_AVOIDED_TERM` | A synonym that `glossary.md` lists in its Avoid column (in `requirements.md` only in the prose columns, not in ID, Priority, Status, Category, or Source) | the owning skill    |
+| WARN     | `GLOSSARY_DUPLICATE`    | A term defined twice in `glossary.md`                                                          | `/requirements`     |
+| INFO     | `NO_TRACEABILITY`       | No use case has a `**Requirements:**` field, so FR coverage is not checked                     | `/use-case-spec`    |
+| INFO     | `BP_NO_ID`              | A process model without a `BP-XXX` process id (e.g. drawn before `/business-process`)          | `/business-process` |
+| INFO     | `REQ_UNCOVERED`         | An NFR or C (not `Rejected` or `Deferred`) that no use case lists; fine when it applies to the whole system | `/use-case-spec` |
+| INFO     | `UC_NO_REQUIREMENT`     | The project uses `**Requirements:**` lines, but this active use case has none: nothing says why it exists; expected after `/reverse-engineer` until the catalog exists | `/use-case-spec` |
+| INFO     | `UC_UNUSED_BY_TC`       | Test cases exist, but none of them includes this use case; an `Obsolete` test case does not count                                     | `/test-case`        |
+| INFO     | `BASELINE_STALE`        | A baseline entry that no longer matches any finding; refresh with `--update-baseline`          | —                   |
+| INFO     | `VALIDATOR_MISSING`, `BPMN_PARSER_MISSING` | A sibling skill is not installed, so its checks were skipped                | install `aiup-core` |
+
+## Per-file codes
+
+`spec_lint.py` runs `validate_use_case.py` from the `use-case-spec` skill over every use case and passes its findings
+through unchanged: `ERROR` means the document does not parse (`TITLE_MISSING`, `OVERVIEW_MISSING`, `FIELD_MISSING`,
+`STATUS_INVALID`, `FLOW_INCOMPLETE`, `UNEXPECTED_CONTENT`), and `WARN` means a rule of the use-case-spec skill is
+broken (`ID_GRAMMAR`, `ID_FILENAME_MISMATCH`, `SECTION_MISSING`, `MAIN_SCENARIO_EMPTY`, `NUMBERING`,
+`SUBBULLET_FLATTENED`, `NO_ALTERNATIVE_FLOWS`, `TRIGGER_STEP_REF`, `FLOW_TERMINATION`, `POSTCONDITIONS_EMPTY`,
+`RULE_LABEL_MISSING`, `RULE_NUMBERING`, `TECHNICAL_TERM`, `UC_TRIGGER_EMPTY`, `UC_TRIGGER_STEP_REF`,
+`UC_TRIGGER_IS_PRECONDITION`, `LAYERS_EMPTY`, `LAYERS_INVALID`, `LAYERS_DUPLICATE`, `MOCKUP_NO_LINK`, `API_NO_LINK`).
+Fix them with `/use-case-spec`.
+
+## Options
+
+| Option                       | Effect                                                                                  |
+|------------------------------|-----------------------------------------------------------------------------------------|
+| `--docs DIR`                 | documentation folder (default `docs`)                                                    |
+| `--only UC-XXX` / `TC-XXX` / `BP-XXX` / `ADR-XXX` | report only findings about this element                             |
+| `--questions`                | report only findings in `open_questions.md`, without `OQ_UNRESOLVED`; a skill runs it after writing a section |
+| `--strict`                   | fail on warnings too                                                                     |
+| `--format json`              | print `{"findings": [...], "summary": {...}}`                                            |
+| `--baseline FILE`            | use this baseline (default `DIR/.spec-lint-baseline.json` when it exists)               |
+| `--no-baseline`              | report every finding                                                                     |
+| `--update-baseline`          | accept all current `ERROR` and `WARN` findings into the baseline, then exit 0            |
+| `--self-test`                | run the built-in fixtures                                                                |
+
+A baseline entry is a fingerprint of code, file, element, and message — not the line number — so it survives edits
+elsewhere in the file.
