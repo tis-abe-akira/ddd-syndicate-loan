@@ -15,6 +15,9 @@ import java.util.Map;
 /** UC-015 step 5: 組成の内容が業務ルールを満たすことを確かめ、シェアパイを作る。 */
 public final class FacilityFormation {
 
+    /** 金額の上限(エンティティモデル)。 */
+    private static final BigDecimal MAX_AMOUNT = new BigDecimal("999999999999999");
+
     private FacilityFormation() {
     }
 
@@ -40,6 +43,10 @@ public final class FacilityFormation {
             BigDecimal share = input.investorShares().get(investor.organizationId());
             if (share == null) {
                 errors.add(new FieldError(field, "持分を入力してください。"));
+            }
+            // C-013: An amount is a whole number of yen.
+            else if (!isWholeYen(share)) {
+                errors.add(new FieldError(field, "持分は円単位の整数で入力してください。"));
             } else if (share.signum() < 0) {
                 errors.add(new FieldError(field, "持分は0円以上にしてください。"));
             }
@@ -58,6 +65,12 @@ public final class FacilityFormation {
         BigDecimal lead = input.leadCommitmentAmount();
         if (lead == null) {
             errors.add(new FieldError("leadCommitmentAmount", "リード銀行のコミットメント額を入力してください。"));
+        }
+        // C-013: An amount is a whole number of yen.
+        else if (!isWholeYen(lead)) {
+            errors.add(new FieldError("leadCommitmentAmount", "リード銀行のコミットメント額は円単位の整数で入力してください。"));
+        } else if (lead.compareTo(MAX_AMOUNT) > 0) {
+            errors.add(new FieldError("leadCommitmentAmount", "リード銀行のコミットメント額が大きすぎます。"));
         } else if (lead.signum() < 0) {
             errors.add(new FieldError("leadCommitmentAmount", "リード銀行のコミットメント額は0円以上にしてください。"));
         }
@@ -66,6 +79,10 @@ public final class FacilityFormation {
             shares.put(deal.leadOrganizationId(), lead);
         }
 
+        if (errors.isEmpty() && shares.values().stream().reduce(BigDecimal.ZERO, BigDecimal::add)
+                .compareTo(MAX_AMOUNT) > 0) {
+            errors.add(new FieldError("investorShares", "コミットメント額の合計が大きすぎます。"));
+        }
         if (errors.isEmpty() && shares.isEmpty()) {
             errors.add(new FieldError("investorShares", "持分が0円より大きい参加金融機関がありません。"));
         }
@@ -89,6 +106,10 @@ public final class FacilityFormation {
             throw new InvalidInputException(errors);
         }
         return new Terms(new DrawdownPeriod(input.startDate(), input.endDate()), new SharePie(shares));
+    }
+
+    private static boolean isWholeYen(BigDecimal amount) {
+        return amount.signum() == 0 || amount.stripTrailingZeros().scale() <= 0;
     }
 
     /**

@@ -281,7 +281,7 @@ erDiagram
 | borrower_organization_id  | 借り手                                        | Long      | 19               | Not Null, Foreign Key (ORGANIZATION.id)                                       |
 | lead_organization_id      | 申し込みを受けたリード銀行                    | Long      | 19               | Not Null, Foreign Key (ORGANIZATION.id)                                       |
 | purpose                   | 案件主旨(資金の使途と背景)                  | String    | 2000             | Not Null                                                                      |
-| requested_amount          | 希望する融資額                                | Decimal   | 19,2             | Not Null, Min: 1, Max: 999999999999999                                        |
+| requested_amount          | 希望する融資額                                | Decimal   | 15,0             | Not Null, Min: 1, Max: 999999999999999                                        |
 | currency                  | 通貨(ISO 4217 の3文字)                      | String    | 3                | Not Null                                                                      |
 | requested_term_months     | 希望する期間(月)                            | Integer   | 10               | Not Null, Min: 1, Max: 600                                                    |
 | requested_repayment_method| 希望する返済方法                              | String    | 30               | Not Null, Values: EQUAL_INSTALLMENT, BULLET_PAYMENT                           |
@@ -329,7 +329,7 @@ erDiagram
 | organization_id     | 参加する金融機関                        | Long      | 19               | Not Null, Foreign Key (ORGANIZATION.id)                                |
 | role                | 融資案件での立場                        | String    | 20               | Not Null, Values: LEAD_ARRANGER, INVESTOR                              |
 | status              | 参加の状態                              | String    | 20               | Not Null, Values: CANDIDATE, INVITED, ACCEPTED, DECLINED               |
-| commitment_amount   | 応諾したコミットメント額(組成の目安)  | Decimal   | 19,2             | Optional, Min: 1, Max: 999999999999999                                 |
+| commitment_amount   | 応諾したコミットメント額(組成の目安)  | Decimal   | 15,0             | Optional, Min: 1, Max: 999999999999999                                 |
 | approval_request_id | 参加の回答の稟議(外部キーは張らない)  | Long      | 19               | Optional                                                               |
 | version             | 楽観的排他制御のバージョン              | Integer   | 10               | Not Null                                                               |
 
@@ -389,7 +389,7 @@ erDiagram
 |---------------------|----------------------------------------------|-----------|------------------|------------------------------------------------------|
 | id                  | 識別子                                       | Long      | 19               | Primary Key, Sequence                                |
 | deal_id             | 組成元の融資案件                             | Long      | 19               | Not Null, Unique, Foreign Key (DEAL.id)              |
-| commitment_amount   | コミットメント額                             | Decimal   | 19,2             | Not Null, Min: 1, Max: 999999999999999               |
+| commitment_amount   | コミットメント額                             | Decimal   | 15,0             | Not Null, Min: 1, Max: 999999999999999               |
 | currency            | 通貨(ISO 4217 の3文字)                     | String    | 3                | Not Null                                             |
 | start_date          | 引き出せる期間の初日                         | Date      | -                | Not Null                                             |
 | end_date            | 引き出せる期間の末日                         | Date      | -                | Not Null                                             |
@@ -413,7 +413,7 @@ erDiagram
 |-----------------|----------------------|-----------|------------------|--------------------------------------------|
 | facility_id     | ファシリティ         | Long      | 19               | Primary Key, Foreign Key (FACILITY.id)     |
 | organization_id | 参加金融機関         | Long      | 19               | Primary Key, Foreign Key (ORGANIZATION.id) |
-| amount          | 持分(コミットメント額のうちの金額) | Decimal | 19,2   | Not Null, Min: 0.01, Max: 999999999999999  |
+| amount          | 持分(コミットメント額のうちの金額) | Decimal | 15,0   | Not Null, Min: 1, Max: 999999999999999  |
 
 #### Constraints
 
@@ -446,7 +446,7 @@ erDiagram
 |-----------------|----------------------------------|-----------|------------------|--------------------------------------------|
 | loan_id         | ローン                           | Long      | 19               | Primary Key, Foreign Key (LOAN.id)         |
 | organization_id | 参加金融機関                     | Long      | 19               | Primary Key, Foreign Key (ORGANIZATION.id) |
-| amount          | 持分(貸している元本の金額)     | Decimal   | 19,2             | Not Null, Min: 0, Max: 999999999999999     |
+| amount          | 持分(貸している元本の金額)     | Decimal   | 15,0             | Not Null, Min: 0, Max: 999999999999999     |
 
 #### Constraints
 
@@ -461,7 +461,7 @@ erDiagram
 |-----------------------|------------------------------------------|-----------|------------------|------------------------------------------------------------|
 | id                    | 識別子                                   | Long      | 19               | Primary Key, Sequence                                      |
 | facility_id           | 引き出し元のファシリティ                 | Long      | 19               | Not Null, Foreign Key (FACILITY.id)                        |
-| amount                | 引き出す額                               | Decimal   | 19,2             | Not Null, Min: 1, Max: 999999999999999                     |
+| amount                | 引き出す額                               | Decimal   | 15,0             | Not Null, Min: 1, Max: 999999999999999                     |
 | purpose               | 使途                                     | String    | 500              | Not Null                                                   |
 | annual_interest_rate  | 年利(%)                                | Decimal   | 9,6              | Not Null, Min: 0, Max: 100                                 |
 | drawdown_date         | 実行日                                   | Date      | -                | Not Null                                                   |
@@ -490,9 +490,9 @@ erDiagram
 |---------------------|---------------------------------------------------|-----------|------------------|-------------------------------------------------------------|
 | drawdown_id         | ドローダウン                                      | Long      | 19               | Primary Key, Foreign Key (DRAWDOWN.id)                      |
 | organization_id     | 参加金融機関                                      | Long      | 19               | Primary Key, Foreign Key (ORGANIZATION.id)                  |
-| requested_amount    | 拠出の依頼額。ファシリティのシェアパイで按分し、リード銀行が指定し直せる | Decimal   | 19,2             | Not Null, Min: 0, Max: 999999999999999                      |
+| requested_amount    | 拠出の依頼額。ファシリティのシェアパイで按分し、リード銀行が指定し直せる | Decimal   | 15,0             | Not Null, Min: 0, Max: 999999999999999                      |
 | answer              | 回答                                              | String    | 20               | Not Null, Values: PENDING, ACCEPTED, DECLINED, INCREASED     |
-| answered_amount     | 回答した拠出額                                    | Decimal   | 19,2             | Optional, Min: 0, Max: 999999999999999                      |
+| answered_amount     | 回答した拠出額                                    | Decimal   | 15,0             | Optional, Min: 0, Max: 999999999999999                      |
 | approval_request_id | 拠出の回答の稟議(外部キーは張らない)            | Long      | 19               | Optional                                                    |
 
 #### Constraints
@@ -514,8 +514,8 @@ erDiagram
 | drawdown_id    | ドローダウン           | Long      | 19               | Not Null, Foreign Key (DRAWDOWN.id)        |
 | installment_no | 何回目の返済か         | Integer   | 10               | Not Null, Min: 1, Max: 600                 |
 | due_date       | 返済日(銀行営業日)   | Date      | -                | Not Null                                   |
-| principal      | 元本の額               | Decimal   | 19,2             | Not Null, Min: 0, Max: 999999999999999     |
-| interest       | 利息の額               | Decimal   | 19,2             | Not Null, Min: 0, Max: 999999999999999     |
+| principal      | 元本の額               | Decimal   | 15,0             | Not Null, Min: 0, Max: 999999999999999     |
+| interest       | 利息の額               | Decimal   | 15,0             | Not Null, Min: 0, Max: 999999999999999     |
 
 #### Constraints
 
@@ -533,8 +533,8 @@ erDiagram
 | loan_id          | 返済先のローン                               | Long      | 19               | Not Null, Foreign Key (LOAN.id)                        |
 | schedule_item_id | 対応する返済予定表の行                       | Long      | 19               | Not Null, Unique, Foreign Key (REPAYMENT_SCHEDULE_ITEM.id) |
 | received_on      | 入金日                                       | Date      | -                | Not Null                                               |
-| principal        | 元本の額                                     | Decimal   | 19,2             | Not Null, Min: 0, Max: 999999999999999                 |
-| interest         | 利息の額                                     | Decimal   | 19,2             | Not Null, Min: 0, Max: 999999999999999                 |
+| principal        | 元本の額                                     | Decimal   | 15,0             | Not Null, Min: 0, Max: 999999999999999                 |
+| interest         | 利息の額                                     | Decimal   | 15,0             | Not Null, Min: 0, Max: 999999999999999                 |
 | recorded_by      | 記録したリード銀行の担当者                   | Long      | 19               | Not Null, Foreign Key (APP_USER.id)                    |
 | recorded_at      | 記録した日時                                 | DateTime  | -                | Not Null                                               |
 
@@ -552,8 +552,8 @@ erDiagram
 |-----------------|----------------------|-----------|------------------|--------------------------------------------|
 | repayment_id    | 入金                 | Long      | 19               | Primary Key, Foreign Key (REPAYMENT.id)    |
 | organization_id | 参加金融機関         | Long      | 19               | Primary Key, Foreign Key (ORGANIZATION.id) |
-| principal       | 元本の配分           | Decimal   | 19,2             | Not Null, Min: 0, Max: 999999999999999     |
-| interest        | 利息の配分           | Decimal   | 19,2             | Not Null, Min: 0, Max: 999999999999999     |
+| principal       | 元本の配分           | Decimal   | 15,0             | Not Null, Min: 0, Max: 999999999999999     |
+| interest        | 利息の配分           | Decimal   | 15,0             | Not Null, Min: 0, Max: 999999999999999     |
 
 #### Constraints
 
@@ -569,8 +569,8 @@ erDiagram
 | facility_id               | 手数料の対象のファシリティ                    | Long      | 19               | Not Null, Foreign Key (FACILITY.id)                                                                                |
 | fee_type                  | 手数料の種類                                  | String    | 30               | Not Null, Values: MANAGEMENT_FEE, ARRANGEMENT_FEE, COMMITMENT_FEE, TRANSACTION_FEE, LATE_FEE, AGENT_FEE, OTHER_FEE |
 | fee_date                  | 手数料の日付                                  | Date      | -                | Not Null                                                                                                           |
-| amount                    | 手数料の額                                    | Decimal   | 19,2             | Not Null, Min: 0.01, Max: 999999999999999                                                                          |
-| calculation_base          | 計算の基準額                                  | Decimal   | 19,2             | Optional, Min: 0, Max: 999999999999999                                                                             |
+| amount                    | 手数料の額                                    | Decimal   | 15,0             | Not Null, Min: 1, Max: 999999999999999                                                                          |
+| calculation_base          | 計算の基準額                                  | Decimal   | 15,0             | Optional, Min: 0, Max: 999999999999999                                                                             |
 | fee_rate                  | 手数料率(%)                                 | Decimal   | 9,6              | Optional, Min: 0, Max: 100                                                                                         |
 | recipient_type            | 受益者の種類                                  | String    | 20               | Not Null, Values: LEAD_ARRANGER, INVESTORS, OTHER                                                                  |
 | recipient_organization_id | 単一の受益者                                  | Long      | 19               | Optional, Foreign Key (ORGANIZATION.id)                                                                            |
@@ -593,7 +593,7 @@ erDiagram
 |-----------------|----------------|-----------|------------------|--------------------------------------------|
 | fee_payment_id  | 手数料の入金   | Long      | 19               | Primary Key, Foreign Key (FEE_PAYMENT.id)  |
 | organization_id | 受益者         | Long      | 19               | Primary Key, Foreign Key (ORGANIZATION.id) |
-| amount          | 配分の額       | Decimal   | 19,2             | Not Null, Min: 0, Max: 999999999999999     |
+| amount          | 配分の額       | Decimal   | 15,0             | Not Null, Min: 0, Max: 999999999999999     |
 
 #### Constraints
 
@@ -630,7 +630,7 @@ erDiagram
 | kind            | 振替依頼データの種類                          | String    | 20               | Not Null, Values: DEBIT, DISTRIBUTION               |
 | transfer_date   | 振替日(銀行営業日)                          | Date      | -                | Not Null                                            |
 | record_count    | データレコードの件数                          | Integer   | 10               | Not Null, Min: 1, Max: 999999                       |
-| total_amount    | データレコードの金額の合計                    | Decimal   | 19,2             | Not Null, Min: 1, Max: 999999999999                 |
+| total_amount    | データレコードの金額の合計                    | Decimal   | 15,0             | Not Null, Min: 1, Max: 999999999999                 |
 | content         | Binary content: 120バイト固定長のファイル     | String    | -                | Not Null                                            |
 | created_at      | 作った日時                                    | DateTime  | -                | Not Null                                            |
 | downloaded_at   | リード銀行が最初にダウンロードした日時        | DateTime  | -                | Optional                                            |

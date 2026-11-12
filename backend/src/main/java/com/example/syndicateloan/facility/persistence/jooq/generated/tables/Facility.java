@@ -8,7 +8,6 @@ import com.example.syndicateloan.facility.persistence.jooq.generated.Keys;
 import com.example.syndicateloan.facility.persistence.jooq.generated.tables.FacilityShare.FacilitySharePath;
 import com.example.syndicateloan.facility.persistence.jooq.generated.tables.records.FacilityRecord;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.Collection;
@@ -73,7 +72,7 @@ public class Facility extends TableImpl<FacilityRecord> {
     /**
      * The column <code>facility.facility.commitment_amount</code>.
      */
-    public final TableField<FacilityRecord, BigDecimal> COMMITMENT_AMOUNT = createField(DSL.name("commitment_amount"), SQLDataType.NUMERIC(19, 2).nullable(false), this, "");
+    public final TableField<FacilityRecord, Long> COMMITMENT_AMOUNT = createField(DSL.name("commitment_amount"), SQLDataType.BIGINT.nullable(false), this, "");
 
     /**
      * The column <code>facility.facility.currency</code>.

@@ -6,7 +6,6 @@ package com.example.syndicateloan.facility.persistence.jooq.generated.tables.rec
 
 import com.example.syndicateloan.facility.persistence.jooq.generated.tables.Facility;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import org.jooq.Record1;
@@ -52,15 +51,15 @@ public class FacilityRecord extends UpdatableRecordImpl<FacilityRecord> {
     /**
      * Setter for <code>facility.facility.commitment_amount</code>.
      */
-    public void setCommitmentAmount(BigDecimal value) {
+    public void setCommitmentAmount(Long value) {
         set(2, value);
     }
 
     /**
      * Getter for <code>facility.facility.commitment_amount</code>.
      */
-    public BigDecimal getCommitmentAmount() {
-        return (BigDecimal) get(2);
+    public Long getCommitmentAmount() {
+        return (Long) get(2);
     }
 
     /**
@@ -170,7 +169,7 @@ public class FacilityRecord extends UpdatableRecordImpl<FacilityRecord> {
     /**
      * Create a detached, initialised FacilityRecord
      */
-    public FacilityRecord(Long id, Long dealId, BigDecimal commitmentAmount, String currency, LocalDate startDate, LocalDate endDate, String status, Long approvalRequestId, Integer version) {
+    public FacilityRecord(Long id, Long dealId, Long commitmentAmount, String currency, LocalDate startDate, LocalDate endDate, String status, Long approvalRequestId, Integer version) {
         super(Facility.FACILITY_);
 
         setId(id);

@@ -9,7 +9,6 @@ import com.example.syndicateloan.facility.persistence.jooq.generated.Keys;
 import com.example.syndicateloan.facility.persistence.jooq.generated.tables.Facility.FacilityPath;
 import com.example.syndicateloan.facility.persistence.jooq.generated.tables.records.FacilityShareRecord;
 
-import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -72,7 +71,7 @@ public class FacilityShare extends TableImpl<FacilityShareRecord> {
     /**
      * The column <code>facility.facility_share.amount</code>.
      */
-    public final TableField<FacilityShareRecord, BigDecimal> AMOUNT = createField(DSL.name("amount"), SQLDataType.NUMERIC(19, 2).nullable(false), this, "");
+    public final TableField<FacilityShareRecord, Long> AMOUNT = createField(DSL.name("amount"), SQLDataType.BIGINT.nullable(false), this, "");
 
     private FacilityShare(Name alias, Table<FacilityShareRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);
@@ -166,7 +165,7 @@ public class FacilityShare extends TableImpl<FacilityShareRecord> {
     @Override
     public List<Check<FacilityShareRecord>> getChecks() {
         return Arrays.asList(
-            Internal.createCheck(this, DSL.name("facility_share_amount_ck"), "(((amount >= 0.01) AND (amount <= ('999999999999999'::bigint)::numeric)))", true)
+            Internal.createCheck(this, DSL.name("facility_share_amount_ck"), "(((amount >= (1)::numeric) AND (amount <= ('999999999999999'::bigint)::numeric)))", true)
         );
     }
 

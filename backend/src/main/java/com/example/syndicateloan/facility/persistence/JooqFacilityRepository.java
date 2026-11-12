@@ -50,7 +50,7 @@ public class JooqFacilityRepository implements FacilityRepository {
     public Facility insert(Facility facility) {
         long id = ctx.insertInto(FACILITY_)
                 .set(FACILITY_.DEAL_ID, facility.dealId())
-                .set(FACILITY_.COMMITMENT_AMOUNT, facility.commitmentAmount())
+                .set(FACILITY_.COMMITMENT_AMOUNT, facility.commitmentAmount().longValueExact())
                 .set(FACILITY_.CURRENCY, facility.currency())
                 .set(FACILITY_.START_DATE, facility.period().startDate())
                 .set(FACILITY_.END_DATE, facility.period().endDate())
@@ -68,7 +68,7 @@ public class JooqFacilityRepository implements FacilityRepository {
     @Transactional
     public Facility update(Facility facility) {
         int updated = ctx.update(FACILITY_)
-                .set(FACILITY_.COMMITMENT_AMOUNT, facility.commitmentAmount())
+                .set(FACILITY_.COMMITMENT_AMOUNT, facility.commitmentAmount().longValueExact())
                 .set(FACILITY_.START_DATE, facility.period().startDate())
                 .set(FACILITY_.END_DATE, facility.period().endDate())
                 .set(FACILITY_.STATUS, facility.status().name())
@@ -92,7 +92,7 @@ public class JooqFacilityRepository implements FacilityRepository {
                 .from(FACILITY_SHARE)
                 .where(FACILITY_SHARE.FACILITY_ID.eq(facilityId))
                 .orderBy(FACILITY_SHARE.ORGANIZATION_ID)
-                .forEach(row -> shares.put(row.value1(), row.value2()));
+                .forEach(row -> shares.put(row.value1(), BigDecimal.valueOf(row.value2())));
         return new SharePie(shares);
     }
 
@@ -100,7 +100,7 @@ public class JooqFacilityRepository implements FacilityRepository {
         var insert = ctx.insertInto(FACILITY_SHARE,
                 FACILITY_SHARE.FACILITY_ID, FACILITY_SHARE.ORGANIZATION_ID, FACILITY_SHARE.AMOUNT);
         for (var share : sharePie.shares().entrySet()) {
-            insert = insert.values(facilityId, share.getKey(), share.getValue());
+            insert = insert.values(facilityId, share.getKey(), share.getValue().longValueExact());
         }
         insert.execute();
     }

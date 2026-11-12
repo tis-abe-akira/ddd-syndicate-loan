@@ -1,7 +1,6 @@
 package com.example.syndicateloan.facility.web;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
@@ -9,7 +8,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * UC-015 step 3、4: 組成の確定。業務ルール(A5)の検証はサービスがまとめて行い、ここでは形だけを確かめる。
+ * UC-015 step 3、4: 組成の確定。業務ルール(A5、円単位の整数を含む)の検証はサービスがまとめて行い、ここでは形だけを確かめる。
  *
  * @param participationFingerprint 組成を始めたときに受け取った、参加の回答の指紋
  * @param facilityVersion          組成を始めたときに受け取ったファシリティのバージョン。まだなければ null
@@ -22,7 +21,7 @@ public record FormFacilityRequest(
         @NotBlank String participationFingerprint,
         Integer facilityVersion,
         @NotNull @Valid List<InvestorShareRequest> investorShares,
-        @Digits(integer = 15, fraction = 2) BigDecimal leadCommitmentAmount,
+        BigDecimal leadCommitmentAmount,
         LocalDate startDate,
         LocalDate endDate) {
 
@@ -34,6 +33,6 @@ public record FormFacilityRequest(
      */
     public record InvestorShareRequest(
             @NotNull Long organizationId,
-            @Digits(integer = 15, fraction = 2) BigDecimal amount) {
+            BigDecimal amount) {
     }
 }

@@ -10,7 +10,6 @@ import com.example.syndicateloan.syndicate.persistence.jooq.generated.Syndicate;
 import com.example.syndicateloan.syndicate.persistence.jooq.generated.tables.Deal.DealPath;
 import com.example.syndicateloan.syndicate.persistence.jooq.generated.tables.records.DealParticipantRecord;
 
-import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -90,7 +89,7 @@ public class DealParticipant extends TableImpl<DealParticipantRecord> {
     /**
      * The column <code>syndicate.deal_participant.commitment_amount</code>.
      */
-    public final TableField<DealParticipantRecord, BigDecimal> COMMITMENT_AMOUNT = createField(DSL.name("commitment_amount"), SQLDataType.NUMERIC(19, 2), this, "");
+    public final TableField<DealParticipantRecord, Long> COMMITMENT_AMOUNT = createField(DSL.name("commitment_amount"), SQLDataType.BIGINT, this, "");
 
     /**
      * The column <code>syndicate.deal_participant.approval_request_id</code>.

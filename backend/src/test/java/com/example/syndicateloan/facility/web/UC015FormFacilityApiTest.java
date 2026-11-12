@@ -162,7 +162,7 @@ class UC015FormFacilityApiTest {
             businessRules = {"BR-009"})
     void rejects_a_share_above_the_accepted_commitment() {
         MvcTestResult result = form(DEAL_NEW, LEAD_USER, fingerprint(DEAL_NEW), null,
-                Map.of(INVESTOR_A, "100000000.01", INVESTOR_B, "50000000"), "0", "2027-01-04", "2027-12-30");
+                Map.of(INVESTOR_A, "100000001", INVESTOR_B, "50000000"), "0", "2027-01-04", "2027-12-30");
 
         assertInvalid(result, "investorShares[9002]");
         assertNoFacility(DEAL_NEW);
@@ -183,7 +183,7 @@ class UC015FormFacilityApiTest {
             businessRules = {"BR-009"})
     void rejects_a_share_below_zero() {
         MvcTestResult result = form(DEAL_NEW, LEAD_USER, fingerprint(DEAL_NEW), null,
-                Map.of(INVESTOR_A, "100000000", INVESTOR_B, "-0.01"), "0", "2027-01-04", "2027-12-30");
+                Map.of(INVESTOR_A, "100000000", INVESTOR_B, "-1"), "0", "2027-01-04", "2027-12-30");
 
         assertInvalid(result, "investorShares[9003]");
         assertNoFacility(DEAL_NEW);
@@ -218,10 +218,44 @@ class UC015FormFacilityApiTest {
     @UseCase(id = "UC-015", businessRules = {"BR-001"})
     void puts_the_lead_bank_into_the_pie_with_a_commitment_above_zero() {
         MvcTestResult result = form(DEAL_NEW, LEAD_USER, fingerprint(DEAL_NEW), null,
-                Map.of(INVESTOR_A, "0", INVESTOR_B, "0"), "0.01", "2027-01-04", "2027-12-30");
+                Map.of(INVESTOR_A, "0", INVESTOR_B, "0"), "1", "2027-01-04", "2027-12-30");
 
         assertThat(result).hasStatusOk();
-        assertThat(shares(DEAL_NEW)).containsExactlyEntriesOf(Map.of(LEAD, 0.01d));
+        assertThat(shares(DEAL_NEW)).containsExactlyEntriesOf(Map.of(LEAD, 1d));
+    }
+
+    // ---------------------------------------------------------------- C-013: 円単位の整数
+
+    @Test
+    @UseCase(id = "UC-015", scenario = "A5: 持分、引き出せる期間、リード銀行の額が正しくない",
+            requirements = {"C-013"})
+    void rejects_a_share_that_is_not_a_whole_yen() {
+        MvcTestResult result = form(DEAL_NEW, LEAD_USER, fingerprint(DEAL_NEW), null,
+                Map.of(INVESTOR_A, "99999999.5", INVESTOR_B, "50000000"), "0", "2027-01-04", "2027-12-30");
+
+        assertInvalid(result, "investorShares[9002]");
+        assertNoFacility(DEAL_NEW);
+    }
+
+    @Test
+    @UseCase(id = "UC-015", scenario = "A5: 持分、引き出せる期間、リード銀行の額が正しくない",
+            requirements = {"C-013"})
+    void rejects_a_lead_commitment_that_is_not_a_whole_yen() {
+        MvcTestResult result = form(DEAL_NEW, LEAD_USER, fingerprint(DEAL_NEW), null,
+                Map.of(INVESTOR_A, "0", INVESTOR_B, "0"), "0.5", "2027-01-04", "2027-12-30");
+
+        assertInvalid(result, "leadCommitmentAmount");
+        assertNoFacility(DEAL_NEW);
+    }
+
+    @Test
+    @UseCase(id = "UC-015", requirements = {"C-013"})
+    void accepts_a_whole_yen_written_with_decimal_zeros() {
+        MvcTestResult result = form(DEAL_NEW, LEAD_USER, fingerprint(DEAL_NEW), null,
+                Map.of(INVESTOR_A, "100000000.00", INVESTOR_B, "50000000"), "0", "2027-01-04", "2027-12-30");
+
+        assertThat(result).hasStatusOk();
+        assertThat(shares(DEAL_NEW)).containsEntry(INVESTOR_A, 100_000_000d);
     }
 
     @Test
@@ -229,7 +263,7 @@ class UC015FormFacilityApiTest {
             businessRules = {"BR-001"})
     void rejects_a_lead_commitment_below_zero() {
         MvcTestResult result = form(DEAL_NEW, LEAD_USER, fingerprint(DEAL_NEW), null,
-                Map.of(INVESTOR_A, "100000000", INVESTOR_B, "50000000"), "-0.01", "2027-01-04", "2027-12-30");
+                Map.of(INVESTOR_A, "100000000", INVESTOR_B, "50000000"), "-1", "2027-01-04", "2027-12-30");
 
         assertInvalid(result, "leadCommitmentAmount");
         assertNoFacility(DEAL_NEW);

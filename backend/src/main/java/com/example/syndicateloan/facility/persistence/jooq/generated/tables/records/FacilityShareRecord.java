@@ -6,8 +6,6 @@ package com.example.syndicateloan.facility.persistence.jooq.generated.tables.rec
 
 import com.example.syndicateloan.facility.persistence.jooq.generated.tables.FacilityShare;
 
-import java.math.BigDecimal;
-
 import org.jooq.Record2;
 import org.jooq.impl.UpdatableRecordImpl;
 
@@ -51,15 +49,15 @@ public class FacilityShareRecord extends UpdatableRecordImpl<FacilityShareRecord
     /**
      * Setter for <code>facility.facility_share.amount</code>.
      */
-    public void setAmount(BigDecimal value) {
+    public void setAmount(Long value) {
         set(2, value);
     }
 
     /**
      * Getter for <code>facility.facility_share.amount</code>.
      */
-    public BigDecimal getAmount() {
-        return (BigDecimal) get(2);
+    public Long getAmount() {
+        return (Long) get(2);
     }
 
     // -------------------------------------------------------------------------
@@ -85,7 +83,7 @@ public class FacilityShareRecord extends UpdatableRecordImpl<FacilityShareRecord
     /**
      * Create a detached, initialised FacilityShareRecord
      */
-    public FacilityShareRecord(Long facilityId, Long organizationId, BigDecimal amount) {
+    public FacilityShareRecord(Long facilityId, Long organizationId, Long amount) {
         super(FacilityShare.FACILITY_SHARE);
 
         setFacilityId(facilityId);

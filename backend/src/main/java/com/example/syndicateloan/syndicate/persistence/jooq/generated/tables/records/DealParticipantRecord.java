@@ -6,8 +6,6 @@ package com.example.syndicateloan.syndicate.persistence.jooq.generated.tables.re
 
 import com.example.syndicateloan.syndicate.persistence.jooq.generated.tables.DealParticipant;
 
-import java.math.BigDecimal;
-
 import org.jooq.Record1;
 import org.jooq.impl.UpdatableRecordImpl;
 
@@ -93,15 +91,15 @@ public class DealParticipantRecord extends UpdatableRecordImpl<DealParticipantRe
     /**
      * Setter for <code>syndicate.deal_participant.commitment_amount</code>.
      */
-    public void setCommitmentAmount(BigDecimal value) {
+    public void setCommitmentAmount(Long value) {
         set(5, value);
     }
 
     /**
      * Getter for <code>syndicate.deal_participant.commitment_amount</code>.
      */
-    public BigDecimal getCommitmentAmount() {
-        return (BigDecimal) get(5);
+    public Long getCommitmentAmount() {
+        return (Long) get(5);
     }
 
     /**
@@ -155,7 +153,7 @@ public class DealParticipantRecord extends UpdatableRecordImpl<DealParticipantRe
     /**
      * Create a detached, initialised DealParticipantRecord
      */
-    public DealParticipantRecord(Long id, Long dealId, Long organizationId, String role, String status, BigDecimal commitmentAmount, Long approvalRequestId, Integer version) {
+    public DealParticipantRecord(Long id, Long dealId, Long organizationId, String role, String status, Long commitmentAmount, Long approvalRequestId, Integer version) {
         super(DealParticipant.DEAL_PARTICIPANT);
 
         setId(id);

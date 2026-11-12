@@ -6,7 +6,6 @@ package com.example.syndicateloan.syndicate.persistence.jooq.generated.tables.re
 
 import com.example.syndicateloan.syndicate.persistence.jooq.generated.tables.Deal;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import org.jooq.Record1;
@@ -80,15 +79,15 @@ public class DealRecord extends UpdatableRecordImpl<DealRecord> {
     /**
      * Setter for <code>syndicate.deal.requested_amount</code>.
      */
-    public void setRequestedAmount(BigDecimal value) {
+    public void setRequestedAmount(Long value) {
         set(4, value);
     }
 
     /**
      * Getter for <code>syndicate.deal.requested_amount</code>.
      */
-    public BigDecimal getRequestedAmount() {
-        return (BigDecimal) get(4);
+    public Long getRequestedAmount() {
+        return (Long) get(4);
     }
 
     /**
@@ -212,7 +211,7 @@ public class DealRecord extends UpdatableRecordImpl<DealRecord> {
     /**
      * Create a detached, initialised DealRecord
      */
-    public DealRecord(Long id, Long borrowerOrganizationId, Long leadOrganizationId, String purpose, BigDecimal requestedAmount, String currency, Integer requestedTermMonths, String requestedRepaymentMethod, String status, Long appliedBy, LocalDateTime appliedAt, Integer version) {
+    public DealRecord(Long id, Long borrowerOrganizationId, Long leadOrganizationId, String purpose, Long requestedAmount, String currency, Integer requestedTermMonths, String requestedRepaymentMethod, String status, Long appliedBy, LocalDateTime appliedAt, Integer version) {
         super(Deal.DEAL);
 
         setId(id);

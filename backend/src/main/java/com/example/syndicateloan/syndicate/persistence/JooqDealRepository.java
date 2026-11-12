@@ -7,6 +7,7 @@ import com.example.syndicateloan.syndicate.AcceptedInvestor;
 import com.example.syndicateloan.syndicate.DealForFormation;
 import com.example.syndicateloan.syndicate.DealStatus;
 import com.example.syndicateloan.syndicate.domain.DealRepository;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import org.jooq.DSLContext;
@@ -58,6 +59,7 @@ public class JooqDealRepository implements DealRepository {
                 .and(DEAL_PARTICIPANT.ROLE.eq("INVESTOR"))
                 .and(DEAL_PARTICIPANT.STATUS.eq("ACCEPTED"))
                 .orderBy(DEAL_PARTICIPANT.ORGANIZATION_ID)
-                .fetch(Records.mapping(AcceptedInvestor::new));
+                .fetch(Records.mapping((organizationId, commitment) ->
+                        new AcceptedInvestor(organizationId, BigDecimal.valueOf(commitment))));
     }
 }
