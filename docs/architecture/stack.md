@@ -107,3 +107,5 @@ reference and corrects them. Do not edit the rows by hand; rerun the layer skill
 | API         | spring-rest      | Code | `UC-XXX` in the Javadoc of the `@RestController` handler method that realizes a step or an alternative flow |
 | API         | spring-rest      | Code | `// UC-XXX BR-YYY:` directly above a request DTO constraint that repeats a rule the service enforces |
 | API         | spring-rest      | Name | `<Entity>Controller` classes annotated `@RestController`; `<Entity>Request` / `<Entity>Response` records |
+| API         | spring-rest-test | Test | `@UseCase(id = "UC-XXX", scenario = "…", businessRules = {"BR-YYY"}, requirements = {"NFR-XXX"})` on every API test method |
+| API         | spring-rest-test | Name | `UC<id><Name>ApiTest`, or `UC<id><Name>ApiIT` for live-server tests run by Failsafe |
