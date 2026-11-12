@@ -61,6 +61,7 @@ public record FormationView(
      * @param commitmentAmount コミットメント額
      * @param startDate        引き出せる期間の初日
      * @param endDate          引き出せる期間の末日
+     * @param version          確定のときに送り返すバージョン(NFR-003)
      */
     public record FacilitySummary(
             long id,
@@ -68,6 +69,7 @@ public record FormationView(
             boolean underApproval,
             BigDecimal commitmentAmount,
             LocalDate startDate,
-            LocalDate endDate) {
+            LocalDate endDate,
+            int version) {
     }
 }

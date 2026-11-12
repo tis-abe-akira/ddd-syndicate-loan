@@ -16,6 +16,7 @@ import java.util.List;
  * @param startDate        引き出せる期間の初日
  * @param endDate          引き出せる期間の末日
  * @param shares           参加金融機関ごとの持分
+ * @param version          次に直すときに送り返すバージョン(NFR-003)
  */
 public record FacilityResponse(
         long id,
@@ -25,7 +26,8 @@ public record FacilityResponse(
         String currency,
         LocalDate startDate,
         LocalDate endDate,
-        List<ShareResponse> shares) {
+        List<ShareResponse> shares,
+        int version) {
 
     static FacilityResponse of(Facility facility) {
         return new FacilityResponse(
@@ -38,7 +40,8 @@ public record FacilityResponse(
                 facility.period().endDate(),
                 facility.sharePie().shares().entrySet().stream()
                         .map(e -> new ShareResponse(e.getKey(), e.getValue()))
-                        .toList());
+                        .toList(),
+                facility.version());
     }
 
     /**

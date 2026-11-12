@@ -46,7 +46,7 @@ public class FacilityFormationController {
         FormationInput input = new FormationInput(shares, request.leadCommitmentAmount(),
                 request.startDate(), request.endDate());
         Facility facility = service.form(
-                new FormFacilityCommand(dealId, request.participationFingerprint(), input), actingUser.current());
+                new FormFacilityCommand(dealId, request.participationFingerprint(), request.facilityVersion(), input), actingUser.current());
         return FacilityResponse.of(facility);
     }
 }

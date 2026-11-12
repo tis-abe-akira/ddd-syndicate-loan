@@ -7,7 +7,9 @@ import com.example.syndicateloan.facility.domain.FormationInput;
  *
  * @param dealId                   融資案件
  * @param participationFingerprint 組成を始めたときに示した、参加の回答の指紋(A6)
+ * @param facilityVersion          組成を始めたときに示したファシリティのバージョン。まだなければ null
  * @param input                    担当者が決めた組成の内容
  */
-public record FormFacilityCommand(long dealId, String participationFingerprint, FormationInput input) {
+public record FormFacilityCommand(
+        long dealId, String participationFingerprint, Integer facilityVersion, FormationInput input) {
 }

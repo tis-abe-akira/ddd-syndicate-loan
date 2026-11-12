@@ -12,6 +12,7 @@ import java.util.List;
  * UC-015 step 3、4: 組成の確定。業務ルール(A5)の検証はサービスがまとめて行い、ここでは形だけを確かめる。
  *
  * @param participationFingerprint 組成を始めたときに受け取った、参加の回答の指紋
+ * @param facilityVersion          組成を始めたときに受け取ったファシリティのバージョン。まだなければ null
  * @param investorShares           参加を応諾した出資者ごとの持分
  * @param leadCommitmentAmount     リード銀行自身のコミットメント額(持たないなら0)
  * @param startDate                引き出せる期間の初日
@@ -19,6 +20,7 @@ import java.util.List;
  */
 public record FormFacilityRequest(
         @NotBlank String participationFingerprint,
+        Integer facilityVersion,
         @NotNull @Valid List<InvestorShareRequest> investorShares,
         @Digits(integer = 15, fraction = 2) BigDecimal leadCommitmentAmount,
         LocalDate startDate,

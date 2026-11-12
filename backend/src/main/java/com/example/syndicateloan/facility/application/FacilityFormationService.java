@@ -62,7 +62,7 @@ public class FacilityFormationService {
                 .orElse(BigDecimal.ZERO);
         FacilitySummary summary = facility
                 .map(f -> new FacilitySummary(f.id(), f.status().name(), f.approvalRequestId() != null,
-                        f.commitmentAmount(), f.period().startDate(), f.period().endDate()))
+                        f.commitmentAmount(), f.period().startDate(), f.period().endDate(), f.version()))
                 .orElse(null);
 
         return new FormationView(deal.id(), deal.currency(), blockedReason(deal, facility), investors,
@@ -87,6 +87,12 @@ public class FacilityFormationService {
         if (!deal.participationFingerprint().equals(command.participationFingerprint())) {
             // UC-015 A6: participation answers changed after they were shown; register nothing.
             throw new ConcurrentChangeException("参加の回答が変わりました。組成をやり直してください。");
+        }
+
+        // NFR-003: a facility changed by another operation since it was shown is not overwritten.
+        Integer currentVersion = current.map(Facility::version).orElse(null);
+        if (!java.util.Objects.equals(currentVersion, command.facilityVersion())) {
+            throw new ConcurrentChangeException("ファシリティが別の操作で変わりました。組成をやり直してください。");
         }
 
         LocalDate today = LocalDate.now(clock);
