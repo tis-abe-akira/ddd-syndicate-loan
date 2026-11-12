@@ -89,7 +89,7 @@ public class FacilityFormationService {
             throw new ConcurrentChangeException("参加の回答が変わりました。組成をやり直してください。");
         }
 
-        // NFR-003: a facility changed by another operation since it was shown is not overwritten.
+        // UC-015 A6 / NFR-003: a facility changed by another operation is not overwritten.
         Integer currentVersion = current.map(Facility::version).orElse(null);
         if (!java.util.Objects.equals(currentVersion, command.facilityVersion())) {
             throw new ConcurrentChangeException("ファシリティが別の操作で変わりました。組成をやり直してください。");
