@@ -166,6 +166,9 @@ class UC015FormFacilityApiTest {
 
         assertInvalid(result, "investorShares[9002]");
         assertNoFacility(DEAL_NEW);
+        // 失敗時の事後条件: 出資者の参加の回答は変わらない
+        assertThat(participants(DEAL_NEW)).containsExactly(
+                "9002:ACCEPTED:100000000", "9003:ACCEPTED:50000000", "9004:INVITED:null");
     }
 
     @Test
@@ -222,6 +225,105 @@ class UC015FormFacilityApiTest {
 
         assertThat(result).hasStatusOk();
         assertThat(shares(DEAL_NEW)).containsExactlyEntriesOf(Map.of(LEAD, 1d));
+    }
+
+    // ---------------------------------------------------------------- A5: 空と上限
+
+    @Test
+    @UseCase(id = "UC-015", scenario = "A5: 持分、引き出せる期間、リード銀行の額が正しくない")
+    void rejects_an_empty_share() {
+        MvcTestResult result = form(DEAL_NEW, LEAD_USER, fingerprint(DEAL_NEW), null,
+                Map.of(INVESTOR_A, "null", INVESTOR_B, "50000000"), "0", "2027-01-04", "2027-12-30");
+
+        assertInvalid(result, "investorShares[9002]");
+        assertNoFacility(DEAL_NEW);
+    }
+
+    @Test
+    @UseCase(id = "UC-015", scenario = "A5: 持分、引き出せる期間、リード銀行の額が正しくない")
+    void rejects_a_share_left_out_for_an_accepted_investor() {
+        MvcTestResult result = form(DEAL_NEW, LEAD_USER, fingerprint(DEAL_NEW), null,
+                Map.of(INVESTOR_A, "100000000"), "0", "2027-01-04", "2027-12-30");
+
+        assertInvalid(result, "investorShares[9003]");
+        assertNoFacility(DEAL_NEW);
+    }
+
+    @Test
+    @UseCase(id = "UC-015", scenario = "A5: 持分、引き出せる期間、リード銀行の額が正しくない")
+    void rejects_an_empty_lead_commitment() {
+        MvcTestResult result = form(DEAL_NEW, LEAD_USER, fingerprint(DEAL_NEW), null,
+                Map.of(INVESTOR_A, "100000000", INVESTOR_B, "50000000"), "null", "2027-01-04", "2027-12-30");
+
+        assertInvalid(result, "leadCommitmentAmount");
+        assertNoFacility(DEAL_NEW);
+    }
+
+    @Test
+    @UseCase(id = "UC-015", businessRules = {"BR-002"})
+    void accepts_a_commitment_total_at_the_upper_limit() {
+        // 999,999,999,999,999 = 100,000,000 + 50,000,000 + 999,999,849,999,999
+        MvcTestResult result = form(DEAL_NEW, LEAD_USER, fingerprint(DEAL_NEW), null,
+                Map.of(INVESTOR_A, "100000000", INVESTOR_B, "50000000"), "999999849999999",
+                "2027-01-04", "2027-12-30");
+
+        assertThat(result).hasStatusOk();
+        assertThat(result).bodyJson().extractingPath("$.commitmentAmount").asNumber().satisfies(n ->
+                assertThat(n.longValue()).isEqualTo(999_999_999_999_999L));
+    }
+
+    @Test
+    @UseCase(id = "UC-015", scenario = "A5: 持分、引き出せる期間、リード銀行の額が正しくない",
+            businessRules = {"BR-002"})
+    void rejects_a_commitment_total_above_the_upper_limit() {
+        MvcTestResult result = form(DEAL_NEW, LEAD_USER, fingerprint(DEAL_NEW), null,
+                Map.of(INVESTOR_A, "100000000", INVESTOR_B, "50000000"), "999999850000000",
+                "2027-01-04", "2027-12-30");
+
+        assertInvalid(result, "investorShares");
+        assertNoFacility(DEAL_NEW);
+    }
+
+    @Test
+    @UseCase(id = "UC-015", scenario = "A5: 持分、引き出せる期間、リード銀行の額が正しくない")
+    void rejects_a_lead_commitment_above_the_upper_limit() {
+        MvcTestResult result = form(DEAL_NEW, LEAD_USER, fingerprint(DEAL_NEW), null,
+                Map.of(INVESTOR_A, "0", INVESTOR_B, "0"), "1000000000000000", "2027-01-04", "2027-12-30");
+
+        assertInvalid(result, "leadCommitmentAmount");
+        assertNoFacility(DEAL_NEW);
+    }
+
+    // ---------------------------------------------------------------- NFR-002: 原子性
+
+    /**
+     * ファシリティを登録した後、シェアパイの書き込みで失敗させ、どちらも残らないことを確かめる。
+     * テストのトランザクションの外で動かす(本番と同じく、サービスのトランザクションがロールバックする)。
+     */
+    @Test
+    @UseCase(id = "UC-015", requirements = {"NFR-002"})
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
+    void leaves_no_partial_update_when_writing_the_share_pie_fails() {
+        String fingerprint = fingerprint(DEAL_NEW);
+        jdbc.execute("""
+                create or replace function facility.uc015_fail_share() returns trigger language plpgsql as $$
+                begin raise exception 'injected failure for UC-015 NFR-002'; end $$
+                """);
+        jdbc.execute("create trigger uc015_fail_share before insert on facility.facility_share"
+                + " for each row execute function facility.uc015_fail_share()");
+        try {
+            form(DEAL_NEW, LEAD_USER, fingerprint, null,
+                    Map.of(INVESTOR_A, "100000000", INVESTOR_B, "50000000"), "0", "2027-01-04", "2027-12-30");
+
+            assertNoFacility(DEAL_NEW);
+            assertThat(shares(DEAL_NEW)).isEmpty();
+        } finally {
+            jdbc.execute("drop trigger if exists uc015_fail_share on facility.facility_share");
+            jdbc.execute("drop function if exists facility.uc015_fail_share()");
+            jdbc.update("delete from facility.facility_share where facility_id in"
+                    + " (select id from facility.facility where deal_id = ?)", DEAL_NEW);
+            jdbc.update("delete from facility.facility where deal_id = ?", DEAL_NEW);
+        }
     }
 
     // ---------------------------------------------------------------- C-013: 円単位の整数
@@ -341,6 +443,8 @@ class UC015FormFacilityApiTest {
 
         assertProblem(result, 409, "/problems/business-rule");
         assertThat(shares(DEAL_FIXED)).containsExactlyEntriesOf(Map.of(INVESTOR_A, 100_000_000d));
+        // 失敗時の事後条件: FIXED のファシリティも、出資者の参加の回答も変わらない
+        assertThat(participants(DEAL_FIXED)).containsExactly("9002:ACCEPTED:100000000");
     }
 
     @Test
@@ -563,8 +667,10 @@ class UC015FormFacilityApiTest {
     // ---------------------------------------------------------------- 入力の形
 
     @Test
-    @UseCase(id = "UC-015", scenario = "A5: 持分、引き出せる期間、リード銀行の額が正しくない")
+    @UseCase(id = "UC-015", scenario = "A6: 組成の間に参加の回答かファシリティが変わった",
+            requirements = {"NFR-003"})
     void rejects_a_request_without_the_participation_fingerprint() {
+        // 参加の回答の指紋が無いと、組成を始めた後の変化(A6)を確かめられないので受け付けない
         MvcTestResult result = mvc.put().uri("/api/deals/{id}/facility", DEAL_NEW)
                 .header("X-Acting-User", String.valueOf(LEAD_USER))
                 .contentType(MediaType.APPLICATION_JSON)
@@ -634,6 +740,14 @@ class UC015FormFacilityApiTest {
     private void assertNoFacility(long dealId) {
         assertThat(jdbc.queryForObject("select count(*) from facility.facility where deal_id = ?",
                 Integer.class, dealId)).isZero();
+    }
+
+    /** 融資案件の出資者の参加の回答を「利用組織:状態:応諾額」で、利用組織の順に。 */
+    private List<String> participants(long dealId) {
+        return jdbc.query("""
+                select organization_id, status, commitment_amount from syndicate.deal_participant
+                where deal_id = ? order by organization_id
+                """, (rs, n) -> rs.getLong(1) + ":" + rs.getString(2) + ":" + rs.getString(3), dealId);
     }
 
     private Map<Long, Double> shares(long dealId) {

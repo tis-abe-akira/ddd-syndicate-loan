@@ -39,10 +39,12 @@ public class FacilityFormationController {
     @PutMapping("/facility")
     public FacilityResponse form(@PathVariable long dealId, @Valid @RequestBody FormFacilityRequest request) {
         Map<Long, java.math.BigDecimal> shares = new LinkedHashMap<>();
-        request.investorShares().forEach(s -> shares.merge(s.organizationId(), s.amount(),
-                (a, b) -> {
-                    throw new IllegalArgumentException("duplicate organizationId: " + s.organizationId());
-                }));
+        for (FormFacilityRequest.InvestorShareRequest share : request.investorShares()) {
+            if (shares.containsKey(share.organizationId())) {
+                throw new IllegalArgumentException("duplicate organizationId: " + share.organizationId());
+            }
+            shares.put(share.organizationId(), share.amount());
+        }
         FormationInput input = new FormationInput(shares, request.leadCommitmentAmount(),
                 request.startDate(), request.endDate());
         Facility facility = service.form(
