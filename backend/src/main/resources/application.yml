@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: syndicate-loan
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/syndicate_loan}
+    username: ${DATABASE_USERNAME:syndicate_loan}
+    password: ${DATABASE_PASSWORD:}
+  jooq:
+    sql-dialect: postgres
+  mvc:
+    problemdetails:
+      enabled: true

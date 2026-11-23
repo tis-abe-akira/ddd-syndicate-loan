@@ -20,11 +20,13 @@ sources:
 | aiup の成果物 | 今の状態 |
 |---|---|
 | `docs/vision.md`(チームが書く入力) | 置かない。代わりに [brief](../brief/index.md) の 01〜07 を入力にする |
-| `docs/requirements.md`、`docs/glossary.md` | 未作成。1-1 で作る。できたら要件の正はこちら |
-| `docs/entity_model.md`、`docs/use_cases.puml`、`docs/use_cases/` | 未作成 |
-| `docs/architecture/stack.md` | 未作成。2 で作る |
+| `docs/requirements.md`、`docs/glossary.md` | 作成済み(2026-11-11)。要件の正はこちら |
+| `docs/entity_model.md` | 作成済み(2026-11-11) |
+| `docs/use_cases.puml` | 作成済み(2026-11-11)。UC-001〜UC-035 |
+| `docs/use_cases/` | 作成中(UC-001 から順に) |
+| `docs/architecture/stack.md` | 作成済み(2026-11-11) |
 | `docs/architecture/decisions/` | [ADR-001](../architecture/decisions/ADR-001-multiple-drawdowns-and-loan-share-pie.md) を aiup 形式で置いた。`**Requirements:**` は空 |
-| `docs/open_questions.md` | 未作成。今の未決事項は GitHub Issue(`[要確認]`)にある。1-1 で移す |
+| `docs/open_questions.md` | **作らない。** 仕様の未決事項は GitHub Issue(`[要確認]`)で管理する(AGENTS.md「仕様の未決事項は GitHub Issue で管理する」) |
 
 brief の ID(`FR-01`・`BR-01`・`NFR-01`・`EX-01`)は元資料の中だけで使う。aiup の成果物では aiup の ID(`FR-001`・`UC-001` の `BR-001` など)を新たに振る。
 
@@ -45,7 +47,7 @@ flowchart TD
     SR --> TC["/test-case"]
   end
   subgraph S2[2. 構築の準備]
-    ST["/stack"]
+    ST["/stack"] --> ARCH["構造テスト<br/>Modulith・ArchUnit"]
   end
   subgraph S3[3. ユースケースごとの構築]
     IMP["/use-case-implement UC-XXX"] --> TEST["/use-case-test UC-XXX"]
@@ -57,22 +59,25 @@ flowchart TD
     UG --> RN["/release-notes"]
   end
   SR --> ST
-  ST --> IMP
+  ARCH --> IMP
   COV -->|次の UC| IMP
   COV --> ACC
 ```
 
-迷ったら、いつでも `/next` を実行する。読むだけで、次に実行するコマンドとその理由を出してくれる。仕様の質問が出たら、どの段階でも `/open-questions` で記録する。
+迷ったら、いつでも `/next` を実行する。読むだけで、次に実行するコマンドとその理由を出してくれる。仕様の質問が出たら、どの段階でも GitHub Issue に `[要確認]` として起票する。`/next` は Issue を見ないので、開いている `[要確認]` の Issue も合わせて確認する。
 
 ## 1. 仕様の整備(Inception / Elaboration)
 
 ### 1-1. `/requirements` — 要件カタログと用語集
 
 - **入力**: [brief](../brief/index.md) の 01〜07 と、GitHub Issue の `[要確認]`。`docs/vision.md` は無いので、実行するときに「`docs/brief/` を project brief として使う」と指示する。
-- **出力**: `docs/requirements.md`(FR / NFR / C の表)、`docs/glossary.md`、`docs/open_questions.md`(質問が残れば)。
+- **出力**: `docs/requirements.md`(FR / NFR / C の表)、`docs/glossary.md`。質問が残れば `[要確認]` の Issue に起票する。
 - **付加価値**: FR がユーザーストーリー形式になる。NFR に測れる閾値が付く。制約(C)が分かれる。用語集の「使わない同義語」を `/spec-review` が検査する。要件の Status がユースケースから追える。
-- **Issue の移し方**: 開いている `[要確認]` の Issue を、関係する FR / NFR / C / 用語の質問として `docs/open_questions.md` に記録する。移したら、Issue に移し先の OQ-XXX を書いて閉じる(閉じるのは人が確認してから)。
+- **Issue との対応**: 開いている `[要確認]` の Issue は Issue のまま残す。関係する FR / NFR / C / 用語が決まったら、Issue に対応する ID を書く。決着した Issue は、決定をカタログに反映して人が確認してからクローズする。
 - **注意**: brief の業務ルール(`BR-xx`)はカタログに入らない。1-5 でユースケースの業務ルールになる。
+- **未決事項があっても進めてよい**: `/requirements` が決めるのは FR / NFR / C の粒度で、手順や業務ルールの細部は 1-6 の `/use-case-spec` で詰める。開いている `[要確認]` の Issue の多くは、ユースケースやエンティティモデルの粒度の問題なので、このままカタログを作ってよい。
+- **仮定は Issue にする**: `/requirements` は、聞かずに既定値で決めた項目を「Assumed」として報告する。その一つ一つを `[要確認]` の Issue に起票する(AGENTS.md)。
+- **数値を決める**: NFR は測れる閾値が必須になる。brief の NFR-08(性能)は「数値目標を設けない」なので、`/requirements` の質問に、目安の数値(例: 画面の応答は95%が1秒以内)で答える。
 
 ### 1-2. `/architecture-decision ADR-001 link …` — ADR と要件を結ぶ
 
@@ -128,7 +133,17 @@ flowchart TD
   | サービス | `spring-service` | `spring-service-test` |
   | REST API | `spring-rest` | `spring-rest-test` |
   | UI(React) | なし(aiup の範囲外。下の未決事項を参照) | なし |
-- **Module layout**: [設計方針](../architecture/design-principles.md) は単一モジュールの package by feature で、依存の向きは `web → ドメイン ← persistence`。`spring-service` の flat / hexagonal のどちらに当てるかを、ここで決める。
+- **Module layout**: [設計方針](../architecture/design-principles.md) は単一モジュールの package by feature で、依存の向きは `web → ドメイン ← persistence`。`spring-service` の flat / hexagonal のどちらに当てるかを、ここで決める。Spring Modulith のモジュール(`organization`・`workflow` を含む。ADR-002・003)も、ここに書く。
+
+### 2-2. 構造テスト — Spring Modulith と ArchUnit(aiup の外で行う)
+
+aiup のスキルには、構造テストを作るものが無い。最初の `/use-case-implement` の前に、次の順で行う。**2026-11-11 に 1〜4 を済ませた**(`backend/src/test/java/com/example/syndicateloan/architecture/`)。
+
+1. **骨組み**: `backend/` の Maven プロジェクトと、モジュール(`organization`・`workflow`・`party`・`syndicate`・`facility`・`loan`・`fee`・`transaction`・`shared` など)のパッケージを作る。業務のコードはまだ書かない。
+2. **構造テストを書く**: [設計方針](../architecture/design-principles.md) の「構造テスト」と「ワークフローの独立」の規則を、Spring Modulith(`ApplicationModules.verify()`)と ArchUnit のテストにする。
+3. **規則が効くことを確かめる**: 規則ごとに、違反と適合のフィクスチャを用意し、違反で失敗し適合で通ることを JUnit の自己テストで確かめる(`./mvnw test` に含まれるので、CI でも毎回確かめられる)。
+4. **stack.md に書く**: `/stack` の Module layout に、モジュールの一覧と、構造テストのクラスの場所を書く。
+5. 以降、新しいモジュールや規則は、構造テストを先に足してから `/use-case-implement` を実行する。`/use-case-implement` が構造テストを破ったら、規則を弱めずに実装を直す。
 
 ## 3. ユースケースごとの構築(UC ごとに繰り返す)
 
