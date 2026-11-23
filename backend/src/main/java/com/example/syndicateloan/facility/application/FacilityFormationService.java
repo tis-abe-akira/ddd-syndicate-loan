@@ -72,7 +72,7 @@ public class FacilityFormationService {
     /** UC-015 step 4〜6: 組成を確定し、ファシリティを組成中として登録するか、直す。 */
     @Transactional
     public Facility form(FormFacilityCommand command, ActingUser user) {
-        // The deal row stays locked until commit, so its participants cannot change meanwhile.
+        // The deal row and its participant rows stay locked until commit (UC-015 A6).
         DealForFormation deal = visibleDeal(deals.lockForFormation(command.dealId()), command.dealId(), user);
         Optional<Facility> current = facilities.findByDealId(deal.id());
 

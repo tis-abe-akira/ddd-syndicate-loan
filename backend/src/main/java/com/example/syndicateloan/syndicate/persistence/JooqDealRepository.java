@@ -48,10 +48,19 @@ public class JooqDealRepository implements DealRepository {
                 row.value3(),
                 row.value4(),
                 DealStatus.valueOf(row.value5()),
-                acceptedInvestors(dealId)));
+                acceptedInvestors(dealId, lock)));
     }
 
-    private List<AcceptedInvestor> acceptedInvestors(long dealId) {
+    private List<AcceptedInvestor> acceptedInvestors(long dealId, boolean lock) {
+        if (lock) {
+            // UC-015 A6: lock every participant row of the deal (not only the accepted ones), so no
+            // participation answer changes until the caller commits, whatever path changes it.
+            ctx.select(DEAL_PARTICIPANT.ID)
+                    .from(DEAL_PARTICIPANT)
+                    .where(DEAL_PARTICIPANT.DEAL_ID.eq(dealId))
+                    .forShare()
+                    .execute();
+        }
         return ctx.select(DEAL_PARTICIPANT.ORGANIZATION_ID, DEAL_PARTICIPANT.COMMITMENT_AMOUNT)
                 .from(DEAL_PARTICIPANT)
                 .where(DEAL_PARTICIPANT.DEAL_ID.eq(dealId))
