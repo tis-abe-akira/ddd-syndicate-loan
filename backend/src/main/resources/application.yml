@@ -2,10 +2,11 @@ spring:
   application:
     name: syndicate-loan
   datasource:
-    # 5432 は他のアプリが使っていることがあるので、ローカルの PostgreSQL(compose.yaml)は 55432 で受ける。
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:55432/syndicate_loan}
+    # 既定はローカルの PostgreSQL(compose.yaml)。5432 は他のアプリが使っていることがあるので 55432 で受ける。
+    # パスワードは compose.yaml の開発用の値で、秘密ではない。本番では DATABASE_* で上書きする。
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:${SYNDICATE_LOAN_DB_PORT:55432}/syndicate_loan}
     username: ${DATABASE_USERNAME:syndicate_loan}
-    password: ${DATABASE_PASSWORD:}
+    password: ${DATABASE_PASSWORD:syndicate_loan}
   jooq:
     sql-dialect: postgres
   mvc:
