@@ -102,6 +102,9 @@ class UC015FormFacilityApiTest {
         // BR-001: 招待中の出資者 C は示さない
         json.extractingPath("$.investors[*].organizationId").asArray()
                 .containsExactly(9002, 9003);
+        json.extractingPath("$.investors[*].organizationName").asArray()
+                .containsExactly("UC015 出資者A", "UC015 出資者B");
+        json.extractingPath("$.leadOrganizationName").asString().isEqualTo("UC015 リード銀行");
         json.extractingPath("$.investors[0].commitmentAmount").asNumber().satisfies(n ->
                 assertThat(n.doubleValue()).isEqualTo(100_000_000d));
         json.extractingPath("$.investors[1].commitmentAmount").asNumber().satisfies(n ->
@@ -133,6 +136,8 @@ class UC015FormFacilityApiTest {
                 assertThat(n.doubleValue()).isEqualTo(150_000_000d));
         assertThat(shares(DEAL_NEW)).containsExactlyInAnyOrderEntriesOf(Map.of(
                 INVESTOR_A, 80_000_000d, INVESTOR_B, 50_000_000d, LEAD, 20_000_000d));
+        json.extractingPath("$.shares[*].organizationName").asArray()
+                .containsExactlyInAnyOrder("UC015 出資者A", "UC015 出資者B", "UC015 リード銀行");
 
         // 事後条件: 組成を始め直すと、組成中のファシリティと決めた持分が示される(A3)
         var view = assertThat(start(DEAL_NEW, LEAD_USER)).bodyJson();

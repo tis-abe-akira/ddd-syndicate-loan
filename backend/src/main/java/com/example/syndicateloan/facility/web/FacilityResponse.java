@@ -29,7 +29,7 @@ public record FacilityResponse(
         List<ShareResponse> shares,
         int version) {
 
-    static FacilityResponse of(Facility facility) {
+    static FacilityResponse of(Facility facility, java.util.Map<Long, String> names) {
         return new FacilityResponse(
                 facility.id(),
                 facility.dealId(),
@@ -39,7 +39,7 @@ public record FacilityResponse(
                 facility.period().startDate(),
                 facility.period().endDate(),
                 facility.sharePie().shares().entrySet().stream()
-                        .map(e -> new ShareResponse(e.getKey(), e.getValue()))
+                        .map(e -> new ShareResponse(e.getKey(), names.get(e.getKey()), e.getValue()))
                         .toList(),
                 facility.version());
     }
@@ -47,9 +47,10 @@ public record FacilityResponse(
     /**
      * 一つの参加金融機関の持分。
      *
-     * @param organizationId 参加金融機関
+     * @param organizationId   参加金融機関
+     * @param organizationName 参加金融機関の会社名
      * @param amount         持分
      */
-    public record ShareResponse(long organizationId, BigDecimal amount) {
+    public record ShareResponse(long organizationId, String organizationName, BigDecimal amount) {
     }
 }

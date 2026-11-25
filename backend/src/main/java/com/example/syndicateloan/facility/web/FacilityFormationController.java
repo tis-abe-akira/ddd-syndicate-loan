@@ -6,6 +6,7 @@ import com.example.syndicateloan.facility.application.FormationView;
 import com.example.syndicateloan.facility.domain.Facility;
 import com.example.syndicateloan.facility.domain.FormationInput;
 import com.example.syndicateloan.organization.ActingUserProvider;
+import com.example.syndicateloan.organization.Organizations;
 import jakarta.validation.Valid;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -23,10 +24,13 @@ public class FacilityFormationController {
 
     private final FacilityFormationService service;
     private final ActingUserProvider actingUser;
+    private final Organizations organizations;
 
-    public FacilityFormationController(FacilityFormationService service, ActingUserProvider actingUser) {
+    public FacilityFormationController(
+            FacilityFormationService service, ActingUserProvider actingUser, Organizations organizations) {
         this.service = service;
         this.actingUser = actingUser;
+        this.organizations = organizations;
     }
 
     /** UC-015 step 1、2: 組成を始める。 */
@@ -49,6 +53,6 @@ public class FacilityFormationController {
                 request.startDate(), request.endDate());
         Facility facility = service.form(
                 new FormFacilityCommand(dealId, request.participationFingerprint(), request.facilityVersion(), input), actingUser.current());
-        return FacilityResponse.of(facility);
+        return FacilityResponse.of(facility, organizations.namesOf(facility.sharePie().shares().keySet()));
     }
 }

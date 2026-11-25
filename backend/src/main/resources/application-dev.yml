@@ -1,0 +1,8 @@
+# 開発用(spring.profiles.active=dev)。ローカルの PostgreSQL は compose.yaml で起動する。
+spring:
+  datasource:
+    # compose.yaml の開発用の値(秘密ではない)
+    password: ${DATABASE_PASSWORD:syndicate_loan}
+  flyway:
+    # 画面を試すためのサンプルデータを、dev のときだけ入れる。
+    locations: classpath:db/migration,classpath:db/dev-seed

@@ -1,5 +1,6 @@
 package com.example.syndicateloan.facility.web;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -19,11 +20,11 @@ import java.util.List;
  */
 public record FormFacilityRequest(
         @NotBlank String participationFingerprint,
-        Integer facilityVersion,
+        @Schema(types = {"integer", "null"}) Integer facilityVersion,
         @NotNull @Valid List<InvestorShareRequest> investorShares,
-        BigDecimal leadCommitmentAmount,
-        LocalDate startDate,
-        LocalDate endDate) {
+        @Schema(types = {"number", "null"}) BigDecimal leadCommitmentAmount,
+        @Schema(types = {"string", "null"}, format = "date") LocalDate startDate,
+        @Schema(types = {"string", "null"}, format = "date") LocalDate endDate) {
 
     /**
      * 一つの出資者の持分。
@@ -33,6 +34,6 @@ public record FormFacilityRequest(
      */
     public record InvestorShareRequest(
             @NotNull Long organizationId,
-            BigDecimal amount) {
+            @Schema(types = {"number", "null"}) BigDecimal amount) {
     }
 }
