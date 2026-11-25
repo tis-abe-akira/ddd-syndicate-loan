@@ -10,7 +10,7 @@ Vite + React + TypeScript + TanStack Router / Query(C-008)。構成と流儀は
 | 役割 | ポート | 起動 |
 |---|---|---|
 | PostgreSQL | 55432 | リポジトリのルートで `docker compose up -d --wait` |
-| バックエンド | 18080 | `cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev` |
+| バックエンド | 18080 | `cd backend && ./mvnw spring-boot:run`(dev プロファイルで起動する) |
 | フロントエンド | 5173 | `cd frontend && npm install && npm run dev` |
 
 - dev プロファイルは、画面を試すためのサンプルデータ(`backend/src/main/resources/db/dev-seed`)を入れる。
