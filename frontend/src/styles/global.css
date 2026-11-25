@@ -300,3 +300,21 @@ a.text-link,
 @media (max-width: 767px) {
   .acting-user .field-label { display: none; }
 }
+
+/*
+ * A row of form fields whose inputs line up even when one label wraps: each field spans three
+ * rows (label, input, error) of a subgrid, so every label row takes the height of the tallest label.
+ */
+.field-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  column-gap: var(--spacing-md);
+  row-gap: var(--spacing-md);
+}
+.field-row > .field {
+  display: grid;
+  grid-row: span 3;
+  grid-template-rows: subgrid;
+  row-gap: var(--spacing-xxs);
+}
+.field-row > .field > .field-label { align-self: end; }

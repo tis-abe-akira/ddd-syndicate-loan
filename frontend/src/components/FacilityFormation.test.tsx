@@ -26,7 +26,7 @@ describe('FacilityFormation', () => {
     const share = screen.getByLabelText('あおば生命保険')
     await userEvent.clear(share)
     await userEvent.type(share, '300000000')
-    await userEvent.type(screen.getByLabelText('さくら銀行(リード銀行)のコミットメント額(円)'), '{selectall}100000000')
+    await userEvent.type(screen.getByLabelText('リード銀行のコミットメント額(円)'), '{selectall}100000000')
     expect(screen.getByTestId('commitment-total')).toHaveTextContent('1,600,000,000 円')
   })
 

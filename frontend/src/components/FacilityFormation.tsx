@@ -144,8 +144,8 @@ export function FacilityFormation({
         </table>
       </div>
 
-      <div className="grid-4">
-        <Field label={`${view.leadOrganizationName}(リード銀行)のコミットメント額(円)`} error={errors.leadCommitmentAmount} id="lead">
+      <div className="field-row">
+        <Field label="リード銀行のコミットメント額(円)" error={errors.leadCommitmentAmount} id="lead">
           <input
             id="lead"
             className="text-input numeric"
