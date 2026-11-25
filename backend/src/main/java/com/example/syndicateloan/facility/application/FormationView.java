@@ -1,5 +1,6 @@
 package com.example.syndicateloan.facility.application;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -9,6 +10,8 @@ import java.util.List;
  *
  * @param dealId                   融資案件
  * @param currency                 通貨
+ * @param leadOrganizationId       リード銀行
+ * @param leadOrganizationName     リード銀行の会社名
  * @param blockedReason            組成できない理由。組成できるなら null
  * @param investors                参加を応諾した出資者と、その応諾額と今の持分
  * @param totalAcceptedAmount      応諾額の合計
@@ -19,11 +22,13 @@ import java.util.List;
 public record FormationView(
         long dealId,
         String currency,
-        BlockedReason blockedReason,
+        long leadOrganizationId,
+        String leadOrganizationName,
+        @Schema(types = {"string", "null"}) BlockedReason blockedReason,
         List<Investor> investors,
         BigDecimal totalAcceptedAmount,
         BigDecimal leadCommitmentAmount,
-        FacilitySummary facility,
+        @Schema(types = {"object", "null"}) FacilitySummary facility,
         String participationFingerprint) {
 
     public FormationView {
@@ -46,10 +51,12 @@ public record FormationView(
      * 参加を応諾した出資者。
      *
      * @param organizationId   出資者
+     * @param organizationName 出資者の会社名
      * @param commitmentAmount 応諾したコミットメント額(組成の目安)
      * @param shareAmount      今のファシリティの持分。ファシリティがまだなければ応諾額
      */
-    public record Investor(long organizationId, BigDecimal commitmentAmount, BigDecimal shareAmount) {
+    public record Investor(
+            long organizationId, String organizationName, BigDecimal commitmentAmount, BigDecimal shareAmount) {
     }
 
     /**

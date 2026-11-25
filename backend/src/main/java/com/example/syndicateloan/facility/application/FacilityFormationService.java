@@ -8,6 +8,7 @@ import com.example.syndicateloan.facility.domain.FacilityFormation;
 import com.example.syndicateloan.facility.domain.FacilityFormation.Terms;
 import com.example.syndicateloan.facility.domain.FacilityRepository;
 import com.example.syndicateloan.organization.ActingUser;
+import com.example.syndicateloan.organization.Organizations;
 import com.example.syndicateloan.shared.BusinessRuleException;
 import com.example.syndicateloan.shared.ConcurrentChangeException;
 import com.example.syndicateloan.shared.ForbiddenException;
@@ -36,11 +37,14 @@ public class FacilityFormationService {
     private final Deals deals;
     private final FacilityRepository facilities;
     private final Clock clock;
+    private final Organizations organizations;
 
-    public FacilityFormationService(Deals deals, FacilityRepository facilities, Clock clock) {
+    public FacilityFormationService(
+            Deals deals, FacilityRepository facilities, Clock clock, Organizations organizations) {
         this.deals = deals;
         this.facilities = facilities;
         this.clock = clock;
+        this.organizations = organizations;
     }
 
     /** UC-015 step 1、2: 組成を始め、参加を応諾した出資者と今のファシリティを示す。 */
@@ -48,11 +52,16 @@ public class FacilityFormationService {
         DealForFormation deal = visibleDeal(deals.findForFormation(dealId), dealId, user);
         Optional<Facility> facility = facilities.findByDealId(dealId);
 
+        var ids = new java.util.ArrayList<Long>();
+        ids.add(deal.leadOrganizationId());
+        deal.acceptedInvestors().forEach(i -> ids.add(i.organizationId()));
+        var names = organizations.namesOf(ids);
+
         BigDecimal totalAccepted = deal.acceptedInvestors().stream()
                 .map(AcceptedInvestor::commitmentAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         var investors = deal.acceptedInvestors().stream()
-                .map(i -> new Investor(i.organizationId(), i.commitmentAmount(), facility
+                .map(i -> new Investor(i.organizationId(), names.get(i.organizationId()), i.commitmentAmount(), facility
                         // UC-015 A3: show the current shares of the facility under formation.
                         .map(f -> f.sharePie().shares().getOrDefault(i.organizationId(), BigDecimal.ZERO))
                         .orElse(i.commitmentAmount())))
@@ -65,7 +74,8 @@ public class FacilityFormationService {
                         f.commitmentAmount(), f.period().startDate(), f.period().endDate(), f.version()))
                 .orElse(null);
 
-        return new FormationView(deal.id(), deal.currency(), blockedReason(deal, facility), investors,
+        return new FormationView(deal.id(), deal.currency(), deal.leadOrganizationId(),
+                names.get(deal.leadOrganizationId()), blockedReason(deal, facility), investors,
                 totalAccepted, lead, summary, deal.participationFingerprint());
     }
 

@@ -1,0 +1,21 @@
+# ローカルの PostgreSQL: docker compose up -d --wait
+# 5432 は他のアプリが使っていることがあるので、ホスト側は 55432 で受ける(backend の application.yml と合わせる)。
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: syndicate_loan
+      POSTGRES_USER: syndicate_loan
+      POSTGRES_PASSWORD: syndicate_loan
+    ports:
+      - "${SYNDICATE_LOAN_DB_PORT:-55432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U syndicate_loan -d syndicate_loan"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+volumes:
+  postgres-data:

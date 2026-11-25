@@ -2,7 +2,8 @@ spring:
   application:
     name: syndicate-loan
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/syndicate_loan}
+    # 5432 は他のアプリが使っていることがあるので、ローカルの PostgreSQL(compose.yaml)は 55432 で受ける。
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:55432/syndicate_loan}
     username: ${DATABASE_USERNAME:syndicate_loan}
     password: ${DATABASE_PASSWORD:}
   jooq:
@@ -10,3 +11,7 @@ spring:
   mvc:
     problemdetails:
       enabled: true
+
+server:
+  # 8080 は他のアプリが使っていることがあるので避ける。
+  port: ${SERVER_PORT:18080}
