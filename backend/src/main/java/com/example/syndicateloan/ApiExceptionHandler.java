@@ -9,6 +9,8 @@ import com.example.syndicateloan.shared.NotFoundException;
 import com.example.syndicateloan.workflow.ApprovalConcurrentChangeException;
 import com.example.syndicateloan.workflow.ApprovalForbiddenException;
 import com.example.syndicateloan.workflow.ApprovalNotAllowedException;
+import com.example.syndicateloan.workflow.ApprovalNotFoundException;
+import com.example.syndicateloan.workflow.DecisionNotAllowedException;
 import com.example.syndicateloan.workflow.InvalidApprovalDraftException;
 import java.net.URI;
 import org.springframework.http.HttpStatus;
@@ -83,6 +85,20 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(ApprovalForbiddenException.class)
     ProblemDetail approvalForbidden(ApprovalForbiddenException e) {
         return problem(HttpStatus.FORBIDDEN, "forbidden", e.getMessage());
+    }
+
+    /** UC-025・UC-026 A1: 他社の稟議は、存在するかどうかも分からない(NFR-007)。 */
+    @ExceptionHandler(ApprovalNotFoundException.class)
+    ProblemDetail approvalNotFound(ApprovalNotFoundException e) {
+        return problem(HttpStatus.NOT_FOUND, "not-found", e.getMessage());
+    }
+
+    /** UC-025・UC-026 A2: 今は判断できない理由(reason)を添える。 */
+    @ExceptionHandler(DecisionNotAllowedException.class)
+    ProblemDetail decisionNotAllowed(DecisionNotAllowedException e) {
+        ProblemDetail problem = problem(HttpStatus.CONFLICT, "decision-not-allowed", e.getMessage());
+        problem.setProperty("reason", e.reason().name());
+        return problem;
     }
 
     private static ProblemDetail problem(HttpStatus status, String type, String detail) {

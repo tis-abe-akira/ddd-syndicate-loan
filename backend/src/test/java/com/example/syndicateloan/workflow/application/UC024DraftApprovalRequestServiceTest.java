@@ -490,7 +490,7 @@ class UC024DraftApprovalRequestServiceTest {
 
         assertThat(e.reason()).isEqualTo(Reason.IN_PROGRESS);
         assertThat(e.existingRequestId()).isEqualTo(other);
-        assertThat(jdbc.queryForObject("select count(*) from workflow.approval_request where subject_ref = 'deal:1'",
+        assertThat(jdbc.queryForObject("select count(*) from workflow.approval_request where subject_ref = 'deal:1' and organization_id = 7001",
                 Integer.class)).isEqualTo(1);
     }
 
@@ -621,8 +621,20 @@ class UC024DraftApprovalRequestServiceTest {
         return new StepAssignment(StepKind.REPORT, null, userId);
     }
 
+    /**
+     * このテストの利用組織(7001)の行の数。テストデータのマイグレーションはどのテストにも入るので、
+     * 他のユースケースのテストデータを数えないように絞る。
+     */
     private int count(String table) {
-        return jdbc.queryForObject("select count(*) from " + table, Integer.class);
+        String scoped = switch (table) {
+            case "workflow.approval_request" -> table + " where organization_id = 7001";
+            case "workflow.approval_step" -> table + " s join workflow.approval_request r on r.id = s.request_id"
+                    + " where r.organization_id = 7001";
+            case "notification.notice" -> table + " n join organization.app_user u on u.id = n.recipient_id"
+                    + " where u.organization_id = 7001";
+            default -> table;
+        };
+        return jdbc.queryForObject("select count(*) from " + scoped, Integer.class);
     }
 
     private List<String> notices() {

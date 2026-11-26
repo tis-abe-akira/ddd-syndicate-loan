@@ -74,4 +74,20 @@ public record Facility(
         }
         return new Facility(id, dealId, currency, period, sharePie, status, approvalRequestId, version);
     }
+
+    /** UC-015 BR-006: 組成の稟議が最終決裁で承認されたファシリティ。以後、持分・額・期間は変わらない。 */
+    public Facility fix() {
+        if (status != FacilityStatus.DRAFT || approvalRequestId == null) {
+            throw new IllegalStateException("Only a facility under approval can be fixed: " + id);
+        }
+        return new Facility(id, dealId, currency, period, sharePie, FacilityStatus.FIXED, approvalRequestId, version);
+    }
+
+    /** UC-015 BR-006: 組成の稟議が否決されたか差し戻されたファシリティ。組成中のまま、直せる(A3)。 */
+    public Facility releasedFromApproval() {
+        if (status != FacilityStatus.DRAFT || approvalRequestId == null) {
+            throw new IllegalStateException("The facility is not under approval: " + id);
+        }
+        return new Facility(id, dealId, currency, period, sharePie, status, null, version);
+    }
 }

@@ -36,4 +36,24 @@ public class DealsService implements Deals {
             throw new IllegalStateException("The deal is not preparing: " + dealId);
         }
     }
+
+    @Override
+    @Transactional
+    public void completeFormation(long dealId) {
+        // UC-015 BR-010: an approved formation request makes the deal formed.
+        if (!deals.transition(dealId, com.example.syndicateloan.syndicate.DealStatus.FORMING,
+                com.example.syndicateloan.syndicate.DealStatus.FORMED)) {
+            throw new IllegalStateException("The deal is not forming: " + dealId);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void returnToPreparing(long dealId) {
+        // UC-015 BR-010: a rejected or sent-back formation request returns the deal to preparing.
+        if (!deals.transition(dealId, com.example.syndicateloan.syndicate.DealStatus.FORMING,
+                com.example.syndicateloan.syndicate.DealStatus.PREPARING)) {
+            throw new IllegalStateException("The deal is not forming: " + dealId);
+        }
+    }
 }

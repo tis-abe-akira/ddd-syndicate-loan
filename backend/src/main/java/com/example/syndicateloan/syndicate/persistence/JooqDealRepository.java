@@ -86,4 +86,15 @@ public class JooqDealRepository implements DealRepository {
                 .and(DEAL.STATUS.eq(DealStatus.PREPARING.name()))
                 .execute() == 1;
     }
+
+    @Override
+    @Transactional
+    public boolean transition(long dealId, DealStatus from, DealStatus to) {
+        return ctx.update(DEAL)
+                .set(DEAL.STATUS, to.name())
+                .set(DEAL.VERSION, DEAL.VERSION.plus(1))
+                .where(DEAL.ID.eq(dealId))
+                .and(DEAL.STATUS.eq(from.name()))
+                .execute() == 1;
+    }
 }
