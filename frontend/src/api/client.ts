@@ -10,6 +10,10 @@ export type FormFacilityRequest = Schemas['FormFacilityRequest']
 export type FacilityResponse = Schemas['FacilityResponse']
 export type ActiveUser = Schemas['ActiveUser']
 export type BlockedReason = NonNullable<FormationView['blockedReason']>
+export type FormationApprovalProposal = Schemas['FormationApprovalProposalResponse']
+export type ProposedApprovalStep = Schemas['ProposedStepResponse']
+export type FormationApprovalRequest = Schemas['FormationApprovalRequest']
+export type FormationApprovalResponse = Schemas['FormationApprovalResponse']
 
 /** A field the backend asks to correct (UC-015 A5). */
 export type FieldError = { field: string; message: string }
@@ -56,4 +60,11 @@ export const api = {
   facilityFormation: (dealId: number) => request<FormationView>(`/api/deals/${dealId}/facility-formation`),
   formFacility: (dealId: number, body: FormFacilityRequest) =>
     request<FacilityResponse>(`/api/deals/${dealId}/facility`, { method: 'PUT', body: JSON.stringify(body) }),
+  formationApprovalProposal: (dealId: number) =>
+    request<FormationApprovalProposal>(`/api/deals/${dealId}/facility/approval-proposal`),
+  submitFormationApproval: (dealId: number, body: FormationApprovalRequest) =>
+    request<FormationApprovalResponse>(`/api/deals/${dealId}/facility/approval-request`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
 }

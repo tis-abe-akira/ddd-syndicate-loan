@@ -318,3 +318,5 @@ a.text-link,
   row-gap: var(--spacing-xxs);
 }
 .field-row > .field > .field-label { align-self: end; }
+
+.approval-body { height: 96px; resize: vertical; }

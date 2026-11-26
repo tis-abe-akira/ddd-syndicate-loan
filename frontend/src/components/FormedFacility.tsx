@@ -2,7 +2,15 @@ import type { FacilityResponse } from '../api/client'
 import { formatDate, formatYen } from '../lib/format'
 
 /** UC-015 step 6: the facility registered under formation and its share pie. */
-export function FormedFacility({ facility, onRevise }: { facility: FacilityResponse; onRevise: () => void }) {
+export function FormedFacility({
+  facility,
+  onRevise,
+  onDraft,
+}: {
+  facility: FacilityResponse
+  onRevise: () => void
+  onDraft: () => void
+}) {
   return (
     <div className="dark-card stack">
       <span className="caption-uppercase">組成中として登録しました</span>
@@ -32,10 +40,12 @@ export function FormedFacility({ facility, onRevise }: { facility: FacilityRespo
           </tbody>
         </table>
       </div>
-      <p style={{ margin: 0 }}>組成の稟議の起案は、承認ワークフロー(UC-024)ができてから行えます。</p>
       <div className="row">
         <button type="button" className="button button-on-dark" onClick={onRevise}>
           組成を直す
+        </button>
+        <button type="button" className="button button-primary" onClick={onDraft}>
+          組成の稟議を起案する
         </button>
       </div>
     </div>

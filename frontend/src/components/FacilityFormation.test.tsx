@@ -5,7 +5,7 @@ import { formationView, formedFacility } from '../test/formation'
 import { FacilityFormation } from './FacilityFormation'
 
 function renderForm(props: Partial<Parameters<typeof FacilityFormation>[0]> = {}) {
-  const handlers = { onSubmit: vi.fn(), onReload: vi.fn(), onRevise: vi.fn() }
+  const handlers = { onSubmit: vi.fn(), onReload: vi.fn(), onRevise: vi.fn(), onDraft: vi.fn() }
   render(
     <FacilityFormation view={formationView()} submitting={false} error={null} formed={undefined} {...handlers} {...props} />,
   )
@@ -101,5 +101,21 @@ describe('FacilityFormation', () => {
     expect(screen.getByRole('row', { name: /みなと信託銀行/ })).toHaveTextContent('1,500,000,000 円75.00%')
     await userEvent.click(screen.getByRole('button', { name: '組成を直す' }))
     expect(onRevise).toHaveBeenCalled()
+  })
+
+  it('offers to draft the formation request for a facility under formation (step 7)', async () => {
+    const { onDraft } = renderForm({
+      view: formationView({
+        facility: { id: 1301, status: 'DRAFT', underApproval: false, commitmentAmount: 2_000_000_000, startDate: '2027-04-01', endDate: '2028-03-31', version: 0 },
+      }),
+    })
+    await userEvent.click(screen.getByRole('button', { name: '組成の稟議を起案する' }))
+    expect(onDraft).toHaveBeenCalled()
+  })
+
+  it('offers to draft the formation request right after the facility is registered (step 7)', async () => {
+    const { onDraft } = renderForm({ formed: formedFacility() })
+    await userEvent.click(screen.getByRole('button', { name: '組成の稟議を起案する' }))
+    expect(onDraft).toHaveBeenCalled()
   })
 })

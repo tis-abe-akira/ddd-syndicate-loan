@@ -20,6 +20,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/deals/{dealId}/facility/approval-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/dev/acting-users": {
         parameters: {
             query?: never;
@@ -28,6 +44,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["actingUsers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/deals/{dealId}/facility/approval-proposal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["propose"];
         put?: never;
         post?: never;
         delete?: never;
@@ -94,6 +126,38 @@ export interface components {
             organizationName: string;
             amount: number;
         };
+        ApprovalStepRequest: {
+            kind: string;
+            /** Format: int32 */
+            order: number | null;
+            /** Format: int64 */
+            userId: number | null;
+        };
+        FormationApprovalRequest: {
+            /** Format: int32 */
+            facilityVersion: number;
+            /** Format: int64 */
+            routeRuleId: number;
+            /** Format: int32 */
+            routeRuleVersion: number;
+            title: string | null;
+            body: string | null;
+            steps: components["schemas"]["ApprovalStepRequest"][];
+        };
+        FormationApprovalResponse: {
+            /** Format: int64 */
+            requestId: number;
+            status: string;
+            steps: components["schemas"]["SubmittedStepResponse"][];
+        };
+        SubmittedStepResponse: {
+            kind: string;
+            /** Format: int32 */
+            order: number | null;
+            /** Format: int64 */
+            userId: number;
+            autoAssigned: boolean;
+        };
         ActiveUser: {
             /** Format: int64 */
             userId: number;
@@ -102,6 +166,33 @@ export interface components {
             organizationId: number;
             organizationName: string;
             roles: string[];
+        };
+        ApprovalCandidateResponse: {
+            /** Format: int64 */
+            userId: number;
+            name: string;
+            positionName: string | null;
+        };
+        FormationApprovalProposalResponse: {
+            /** Format: int64 */
+            facilityId: number;
+            /** Format: int32 */
+            facilityVersion: number;
+            /** Format: int64 */
+            routeRuleId: number;
+            /** Format: int32 */
+            routeRuleVersion: number;
+            title: string;
+            steps: components["schemas"]["ProposedStepResponse"][];
+        };
+        ProposedStepResponse: {
+            kind: string;
+            /** Format: int32 */
+            order: number | null;
+            positionName: string | null;
+            /** Format: int64 */
+            userId: number | null;
+            candidates: components["schemas"]["ApprovalCandidateResponse"][];
         };
         FacilitySummary: {
             /** Format: int64 */
@@ -173,6 +264,32 @@ export interface operations {
             };
         };
     };
+    submit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dealId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FormationApprovalRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FormationApprovalResponse"];
+                };
+            };
+        };
+    };
     actingUsers: {
         parameters: {
             query?: never;
@@ -189,6 +306,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ActiveUser"][];
+                };
+            };
+        };
+    };
+    propose: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dealId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FormationApprovalProposalResponse"];
                 };
             };
         };
