@@ -38,9 +38,9 @@ public interface ApprovalRequests {
      * UC-028 step 6〜9: 差し戻された稟議を、新しい回として再申請する。
      *
      * @throws ApprovalForbiddenException         起案者が業務ユーザーでない(前提条件)
-     * @throws ApprovalNotAllowedException        UC-028 A1、A2、A3
-     * @throws InvalidApprovalDraftException      UC-028 A5
-     * @throws ApprovalConcurrentChangeException  UC-028 A6
+     * @throws ApprovalNotAllowedException        UC-028 A1、A2
+     * @throws InvalidApprovalDraftException      UC-028 A5(A6 で利用者が無効になったか職位が変わった段も)
+     * @throws ApprovalConcurrentChangeException  UC-028 A6(稟議か規則が変わった。合う規則がなくなった場合も)
      */
     SubmittedApproval resubmit(Resubmission resubmission, ActingUser drafter);
 }

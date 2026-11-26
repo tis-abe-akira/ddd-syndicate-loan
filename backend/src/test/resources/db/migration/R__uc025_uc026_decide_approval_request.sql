@@ -38,7 +38,11 @@ values (6201, 6001, 'UC025_TYPE', 'deal:1', '合議中の稟議', '本文', 6101
        (6207, 6001, 'FACILITY_FORMATION', 'facility:6603', '合議中の組成の稟議', null, 6101, 'IN_CONSULTATION',
         1, timestamp '2026-11-30 10:00:00', null, 0),
        (6208, 6001, 'FACILITY_FORMATION', 'facility:6604', '合議中の組成の稟議(否決)', null, 6101,
-        'IN_CONSULTATION', 1, timestamp '2026-11-30 10:00:00', null, 0);
+        'IN_CONSULTATION', 1, timestamp '2026-11-30 10:00:00', null, 0),
+       (6209, 6001, 'UC025_TYPE', 'deal:9', '再申請された合議中の稟議', null, 6101, 'IN_CONSULTATION', 2,
+        timestamp '2026-11-30 15:00:00', null, 3),
+       (6210, 6001, 'UC025_TYPE', 'deal:10', '再申請された承認中の稟議', null, 6101, 'IN_APPROVAL', 2,
+        timestamp '2026-11-30 15:00:00', null, 2);
 insert into workflow.approval_attribute (request_id, name, value)
 values (6201, 'amount', 500000000);
 insert into workflow.approval_condition (request_id, name, value)
@@ -64,7 +68,17 @@ values (6301, 6201, 1, 'CONSULTATION', null, 6102, true, 'PENDING', null, null),
        (6361, 6207, 1, 'CONSULTATION', null, 6102, true, 'PENDING', null, null),
        (6362, 6207, 1, 'MAIN', 1, 6104, true, 'PENDING', null, null),
        (6371, 6208, 1, 'CONSULTATION', null, 6102, true, 'PENDING', null, null),
-       (6372, 6208, 1, 'MAIN', 1, 6104, true, 'PENDING', null, null);
+       (6372, 6208, 1, 'MAIN', 1, 6104, true, 'PENDING', null, null),
+       -- 6209: 回 1 で合議 A が承認し(version 1)、合議 B が差し戻し(version 2)、再申請で回 2 になった(version 3)
+       (6381, 6209, 1, 'CONSULTATION', null, 6102, true, 'APPROVED', null, timestamp '2026-11-30 11:00:00'),
+       (6382, 6209, 1, 'CONSULTATION', null, 6103, true, 'SENT_BACK', '直してください',
+        timestamp '2026-11-30 12:00:00'),
+       (6383, 6209, 1, 'MAIN', 1, 6104, true, 'SKIPPED', null, null),
+       (6384, 6209, 2, 'CONSULTATION', null, 6103, true, 'PENDING', null, null),
+       (6385, 6209, 2, 'MAIN', 1, 6104, true, 'PENDING', null, null),
+       -- 6210: 回 1 で承認 2段目が差し戻し(version 1)、再申請で回 2 になった(version 2)
+       (6391, 6210, 1, 'MAIN', 1, 6105, true, 'SENT_BACK', '直してください', timestamp '2026-11-30 12:00:00'),
+       (6392, 6210, 2, 'MAIN', 1, 6105, true, 'PENDING', null, null);
 
 -- 組成の稟議の対象: 6501(組成中)のファシリティ 6601 は稟議 6205 にかかっている。
 -- 6502(組成中)のファシリティ 6602 は、稟議 6206 にかかっていない(UC-026 A8)。
