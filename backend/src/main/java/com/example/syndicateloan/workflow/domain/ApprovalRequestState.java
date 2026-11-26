@@ -126,6 +126,7 @@ public record ApprovalRequestState(
     }
 
     // UC-025 BR-003 / BR-004: sending back or rejecting skips this round's undecided steps.
+    // UC-026 BR-003 / BR-004: the same for an approver on the main track.
     private DecisionResult close(StepState step, StepDecision decision, ApprovalStatus newStatus,
             LocalDateTime decidedAt, ApprovalOutcome outcome, String comment, LocalDateTime now,
             List<StepChange> changes) {
@@ -141,6 +142,7 @@ public record ApprovalRequestState(
     private Optional<StepState> actionableStep(long userId) {
         if (status == ApprovalStatus.IN_CONSULTATION) {
             // UC-025 BR-001: consultees decide in parallel, in any order.
+            // UC-025 BR-007: only the owner of the step decides it; no proxy.
             return pending(StepKind.CONSULTATION).stream().filter(s -> s.actorId() == userId).findFirst();
         }
         if (status == ApprovalStatus.IN_APPROVAL) {

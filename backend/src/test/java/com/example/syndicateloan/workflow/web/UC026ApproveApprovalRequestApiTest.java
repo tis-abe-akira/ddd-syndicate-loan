@@ -75,6 +75,12 @@ class UC026ApproveApprovalRequestApiTest {
     @Test
     @UseCase(id = "UC-026", scenario = "Main Success Scenario", businessRules = {"BR-001", "BR-009"})
     void asks_the_next_approver_after_a_non_final_approval() {
+        // step 2: 合議先の判断とコメントを含めて示す
+        var opened = assertThat(open(6202, MAIN_1)).bodyJson();
+        opened.extractingPath("$.steps[0].decision").asString().isEqualTo("APPROVED");
+        opened.extractingPath("$.steps[0].comment").asString().isEqualTo("異議なし");
+        opened.extractingPath("$.blockedReason").isNull();
+
         MvcTestResult result = decide(6202, MAIN_1, "APPROVE", null, 1);
 
         assertThat(result).hasStatusOk();
@@ -90,7 +96,15 @@ class UC026ApproveApprovalRequestApiTest {
 
         MvcTestResult result = decide(6202, MAIN_2, "APPROVE", "承認します", 2);
 
-        assertThat(result).bodyJson().extractingPath("$.status").asString().isEqualTo("APPROVED");
+        var json = assertThat(result).bodyJson();
+        json.extractingPath("$.status").asString().isEqualTo("APPROVED");
+        // step 8: 記録した判断を示す。BR-010: 判断・コメント・日時を記録する
+        json.extractingPath("$.steps[2].decision").asString().isEqualTo("APPROVED");
+        json.extractingPath("$.steps[2].comment").asString().isEqualTo("承認します");
+        json.extractingPath("$.steps[2].decidedAt").asString().isEqualTo("2026-12-01T09:00:00");
+        assertThat(jdbc.queryForMap("select comment, decided_at from workflow.approval_step where id = 6313"))
+                .containsEntry("comment", "承認します")
+                .containsEntry("decided_at", java.sql.Timestamp.valueOf("2026-12-01 09:00:00"));
         assertThat(jdbc.queryForObject("select decided_at from workflow.approval_request where id = 6202",
                 java.sql.Timestamp.class)).isEqualTo(java.sql.Timestamp.valueOf("2026-12-01 09:00:00"));
         assertThat(steps(6202)).containsExactly("6311:APPROVED", "6312:APPROVED", "6313:APPROVED", "6314:NOTIFIED");
@@ -114,7 +128,12 @@ class UC026ApproveApprovalRequestApiTest {
     @Test
     @UseCase(id = "UC-026", scenario = "A3: 承認者が差し戻す", businessRules = {"BR-003", "BR-009"})
     void sends_the_request_back_from_the_main_track() {
-        decide(6202, MAIN_1, "SEND_BACK", "根拠を足してください", 1);
+        MvcTestResult result = decide(6202, MAIN_1, "SEND_BACK", "根拠を足してください", 1);
+
+        assertThat(result).hasStatusOk();
+        assertThat(result).bodyJson().extractingPath("$.status").asString().isEqualTo("DRAFT");
+        assertThat(result).bodyJson().extractingPath("$.steps[1].decision").asString().isEqualTo("SENT_BACK");
+        assertThat(result).bodyJson().extractingPath("$.steps[1].comment").asString().isEqualTo("根拠を足してください");
 
         assertThat(status(6202)).isEqualTo("DRAFT");
         assertThat(steps(6202)).containsExactly("6311:APPROVED", "6312:SENT_BACK", "6313:SKIPPED", "6314:PENDING");
@@ -124,7 +143,11 @@ class UC026ApproveApprovalRequestApiTest {
     @Test
     @UseCase(id = "UC-026", scenario = "A4: 承認者が否決する", businessRules = {"BR-004", "BR-009"})
     void rejects_the_request_from_the_main_track() {
-        decide(6202, MAIN_1, "REJECT", "見送ります", 1);
+        MvcTestResult result = decide(6202, MAIN_1, "REJECT", "見送ります", 1);
+
+        assertThat(result).hasStatusOk();
+        assertThat(result).bodyJson().extractingPath("$.status").asString().isEqualTo("REJECTED");
+        assertThat(result).bodyJson().extractingPath("$.steps[1].decision").asString().isEqualTo("REJECTED");
 
         assertThat(status(6202)).isEqualTo("REJECTED");
         assertThat(steps(6202)).containsExactly("6311:APPROVED", "6312:REJECTED", "6313:SKIPPED", "6314:PENDING");
@@ -196,6 +219,18 @@ class UC026ApproveApprovalRequestApiTest {
                 Long.class)).isNull();
         assertThat(jdbc.queryForObject("select status from syndicate.deal where id = 6501", String.class))
                 .isEqualTo("PREPARING");
+    }
+
+    @Test
+    @UseCase(id = "UC-026", scenario = "A3: 承認者が差し戻す", businessRules = {"BR-008"})
+    void sends_back_even_when_the_business_has_nothing_left_to_undo() {
+        // A8 は最終決裁の承認だけ。差し戻しは、業務が戻すものがなくても記録する
+        MvcTestResult result = decide(6206, MAIN_1, "SEND_BACK", "見直してください", 0);
+
+        assertThat(result).hasStatusOk();
+        assertThat(status(6206)).isEqualTo("DRAFT");
+        assertThat(jdbc.queryForObject("select status from syndicate.deal where id = 6502", String.class))
+                .isEqualTo("FORMING");
     }
 
     /**
