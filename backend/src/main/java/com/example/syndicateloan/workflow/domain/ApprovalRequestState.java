@@ -56,6 +56,18 @@ public record ApprovalRequestState(
         steps = List.copyOf(steps);
     }
 
+    /**
+     * 今の回が始まったときのバージョン。判断の記録はそのたびにバージョンを1上げるので、
+     * 今の回で判断した段の数を引いて求める。
+     */
+    public int roundStartedVersion() {
+        long decided = steps.stream()
+                .filter(s -> s.decision() == StepDecision.APPROVED || s.decision() == StepDecision.SENT_BACK
+                        || s.decision() == StepDecision.REJECTED)
+                .count();
+        return version - (int) decided;
+    }
+
     /** UC-025・UC-026 A2: 利用者が今は判断できない理由。判断できるなら空。 */
     public Optional<Reason> blockedReason(long userId) {
         if (status != ApprovalStatus.IN_CONSULTATION && status != ApprovalStatus.IN_APPROVAL) {

@@ -19,6 +19,7 @@ import java.util.Map;
 import com.example.syndicateloan.workflow.domain.ApprovalRequestRepository;
 import com.example.syndicateloan.workflow.domain.LatestRequest;
 import com.example.syndicateloan.workflow.domain.NewApprovalRequest;
+import com.example.syndicateloan.workflow.domain.ResubmittedRound;
 import com.example.syndicateloan.workflow.domain.RouteStep;
 import java.util.Optional;
 import org.jooq.DSLContext;
@@ -73,20 +74,56 @@ public class JooqApprovalRequestRepository implements ApprovalRequestRepository 
             // UC-024 A6 / BR-009: another request for the same subject was submitted first.
             throw new ApprovalConcurrentChangeException("同じ対象の稟議が、別の操作で申請されました。");
         }
-        request.subject().attributes().forEach((name, value) -> ctx.insertInto(APPROVAL_ATTRIBUTE)
-                .set(APPROVAL_ATTRIBUTE.REQUEST_ID, id)
+        insertValues(id, request.subject().attributes(), request.subject().conditions());
+        insertSteps(id, request.round(), request.steps());
+        return id;
+    }
+
+    @Override
+    @Transactional
+    public void resubmit(long requestId, int expectedVersion, ResubmittedRound round) {
+        int updated = ctx.update(APPROVAL_REQUEST)
+                .set(APPROVAL_REQUEST.TITLE, round.title())
+                .set(APPROVAL_REQUEST.BODY, round.body())
+                .set(APPROVAL_REQUEST.ROUTE_RULE_ID, round.routeRuleId())
+                .set(APPROVAL_REQUEST.STATUS, round.status().name())
+                .set(APPROVAL_REQUEST.ROUND, round.round())
+                .set(APPROVAL_REQUEST.SUBMITTED_AT, round.submittedAt())
+                .set(APPROVAL_REQUEST.VERSION, APPROVAL_REQUEST.VERSION.plus(1))
+                .where(APPROVAL_REQUEST.ID.eq(requestId))
+                .and(APPROVAL_REQUEST.VERSION.eq(expectedVersion))
+                // UC-028 BR-001: only a sent-back request is resubmitted
+                .and(APPROVAL_REQUEST.STATUS.eq(ApprovalStatus.DRAFT.name()))
+                .execute();
+        if (updated == 0) {
+            throw new ApprovalConcurrentChangeException("稟議が、別の操作で変わりました。");
+        }
+        // UC-028 BR-005: attributes and conditions are the values the business set now
+        ctx.deleteFrom(APPROVAL_ATTRIBUTE).where(APPROVAL_ATTRIBUTE.REQUEST_ID.eq(requestId)).execute();
+        ctx.deleteFrom(APPROVAL_CONDITION).where(APPROVAL_CONDITION.REQUEST_ID.eq(requestId)).execute();
+        insertValues(requestId, round.attributes(), round.conditions());
+        // UC-028 BR-006: the steps of earlier rounds stay as they are; the new round gets its own
+        insertSteps(requestId, round.round(), round.steps());
+    }
+
+    private void insertValues(long requestId, Map<String, BigDecimal> attributes, Map<String, String> conditions) {
+        attributes.forEach((name, value) -> ctx.insertInto(APPROVAL_ATTRIBUTE)
+                .set(APPROVAL_ATTRIBUTE.REQUEST_ID, requestId)
                 .set(APPROVAL_ATTRIBUTE.NAME, name)
                 .set(APPROVAL_ATTRIBUTE.VALUE, value)
                 .execute());
-        request.subject().conditions().forEach((name, value) -> ctx.insertInto(APPROVAL_CONDITION)
-                .set(APPROVAL_CONDITION.REQUEST_ID, id)
+        conditions.forEach((name, value) -> ctx.insertInto(APPROVAL_CONDITION)
+                .set(APPROVAL_CONDITION.REQUEST_ID, requestId)
                 .set(APPROVAL_CONDITION.NAME, name)
                 .set(APPROVAL_CONDITION.VALUE, value)
                 .execute());
-        for (RouteStep step : request.steps()) {
+    }
+
+    private void insertSteps(long requestId, int round, List<RouteStep> steps) {
+        for (RouteStep step : steps) {
             ctx.insertInto(APPROVAL_STEP)
-                    .set(APPROVAL_STEP.REQUEST_ID, id)
-                    .set(APPROVAL_STEP.ROUND, request.round())
+                    .set(APPROVAL_STEP.REQUEST_ID, requestId)
+                    .set(APPROVAL_STEP.ROUND, round)
                     .set(APPROVAL_STEP.KIND, step.kind().name())
                     .set(APPROVAL_STEP.STEP_ORDER, step.order())
                     .set(APPROVAL_STEP.POSITION_ID, step.positionId())
@@ -95,7 +132,6 @@ public class JooqApprovalRequestRepository implements ApprovalRequestRepository 
                     .set(APPROVAL_STEP.DECISION, "PENDING")
                     .execute();
         }
-        return id;
     }
 
     @Override
