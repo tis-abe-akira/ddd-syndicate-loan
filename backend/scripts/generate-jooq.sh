@@ -22,5 +22,5 @@ url="jdbc:postgresql://127.0.0.1:${port}/codegen"
 ./mvnw -B -q -Pjooq-codegen \
   -Djooq.codegen.url="$url" -Djooq.codegen.user=postgres -Djooq.codegen.password="$password" \
   flyway:migrate \
-  jooq-codegen:generate@organization jooq-codegen:generate@syndicate jooq-codegen:generate@facility
+  jooq-codegen:generate@organization jooq-codegen:generate@syndicate jooq-codegen:generate@facility jooq-codegen:generate@workflow jooq-codegen:generate@notification
 echo "jOOQ classes generated."

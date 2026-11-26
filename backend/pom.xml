@@ -222,6 +222,38 @@
                                     </generator>
                                 </configuration>
                             </execution>
+                            <execution>
+                                <id>workflow</id>
+                                <goals><goal>generate</goal></goals>
+                                <phase>none</phase>
+                                <configuration>
+                                    <generator>
+                                        <database>
+                                            <inputSchema>workflow</inputSchema>
+                                        </database>
+                                        <target>
+                                            <packageName>com.example.syndicateloan.workflow.persistence.jooq.generated</packageName>
+                                            <directory>src/main/java</directory>
+                                        </target>
+                                    </generator>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>notification</id>
+                                <goals><goal>generate</goal></goals>
+                                <phase>none</phase>
+                                <configuration>
+                                    <generator>
+                                        <database>
+                                            <inputSchema>notification</inputSchema>
+                                        </database>
+                                        <target>
+                                            <packageName>com.example.syndicateloan.notification.persistence.jooq.generated</packageName>
+                                            <directory>src/main/java</directory>
+                                        </target>
+                                    </generator>
+                                </configuration>
+                            </execution>
                         </executions>
                         <dependencies>
                             <dependency>
