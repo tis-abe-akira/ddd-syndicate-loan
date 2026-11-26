@@ -11,3 +11,12 @@ export const facilityFormationQuery = (dealId: number, userId: number | undefine
     queryFn: () => api.facilityFormation(dealId),
     retry: false,
   })
+
+/** UC-015 step 7 (UC-024 step 4): the proposed route of the formation request. Fetched when drafting starts. */
+export const formationApprovalProposalQuery = (dealId: number, userId: number | undefined) =>
+  queryOptions({
+    queryKey: ['formation-approval-proposal', dealId, userId],
+    queryFn: () => api.formationApprovalProposal(dealId),
+    retry: false,
+    staleTime: 0,
+  })

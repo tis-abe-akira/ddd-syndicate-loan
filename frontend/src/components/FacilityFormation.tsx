@@ -25,6 +25,7 @@ export function FacilityFormation({
   onSubmit,
   onReload,
   onRevise,
+  onDraft,
 }: {
   view: FormationView
   submitting: boolean
@@ -33,11 +34,12 @@ export function FacilityFormation({
   onSubmit: (request: FormFacilityRequest) => void
   onReload: () => void
   onRevise: () => void
+  onDraft: () => void
 }) {
   const [form, setForm] = useState<FormationForm>(() => initialForm(view))
   const [localErrors, setLocalErrors] = useState<FieldErrors>({})
 
-  if (formed) return <FormedFacility facility={formed} onRevise={onRevise} />
+  if (formed) return <FormedFacility facility={formed} onRevise={onRevise} onDraft={onDraft} />
   if (view.blockedReason) return <BlockedNotice reason={view.blockedReason} facility={view.facility} />
 
   const apiError = error instanceof ApiError ? error : undefined
@@ -63,9 +65,15 @@ export function FacilityFormation({
   return (
     <form className="feature-card stack" onSubmit={submit} noValidate>
       {view.facility && (
-        <p className="muted" style={{ margin: 0 }}>
-          組成中のファシリティがあります。今の持分と引き出せる期間から直せます。
-        </p>
+        <div className="row">
+          <p className="muted" style={{ margin: 0 }}>
+            組成中のファシリティがあります。今の持分と引き出せる期間から直すか、このまま組成の稟議にかけられます。
+          </p>
+          <span className="spacer" />
+          <button type="button" className="button button-secondary" onClick={onDraft}>
+            組成の稟議を起案する
+          </button>
+        </div>
       )}
       {conflict && (
         <div className="form-error stack" role="alert">

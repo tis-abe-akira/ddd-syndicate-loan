@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, notFound } from '@tanstack/react-router'
-import { api, type FormFacilityRequest } from '../api/client'
-import { facilityFormationQuery } from '../api/queries'
+import { useState } from 'react'
+import { ApiError, api, type FormationApprovalRequest, type FormFacilityRequest } from '../api/client'
+import { facilityFormationQuery, formationApprovalProposalQuery } from '../api/queries'
 import { ErrorBand } from '../components/ErrorBand'
 import { FacilityFormation } from '../components/FacilityFormation'
+import { FormationApproval } from '../components/FormationApproval'
 import { useActingUserId } from '../lib/actingUser'
 
 export const Route = createFileRoute('/deals/$dealId/facility')({
@@ -26,6 +28,17 @@ function FacilityFormationPage() {
     mutationFn: (request: FormFacilityRequest) => api.formFacility(dealId, request),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['facility-formation', dealId] }),
   })
+  // UC-015 step 7, 8: drafting the formation request for the facility under formation.
+  const [drafting, setDrafting] = useState(false)
+  const proposal = useQuery({ ...formationApprovalProposalQuery(dealId, userId), enabled: drafting && userId !== undefined })
+  const approval = useMutation({
+    mutationFn: (request: FormationApprovalRequest) => api.submitFormationApproval(dealId, request),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['facility-formation', dealId] }),
+  })
+  const stopDrafting = () => {
+    setDrafting(false)
+    approval.reset()
+  }
 
   if (userId === undefined) {
     return (
@@ -56,6 +69,32 @@ function FacilityFormationPage() {
       </section>
       <section className="band">
         <div className="container">
+          {drafting ? (
+            proposal.isError ? (
+              <div className="outline-card stack">
+                <p className="form-error" role="alert" style={{ margin: 0 }}>
+                  {proposal.error instanceof ApiError ? proposal.error.detail : String(proposal.error)}
+                </p>
+                <div className="row">
+                  <button type="button" className="button button-secondary" onClick={stopDrafting}>
+                    戻る
+                  </button>
+                </div>
+              </div>
+            ) : proposal.data ? (
+              <FormationApproval
+                key={`${proposal.data.facilityVersion}-${proposal.data.routeRuleVersion}`}
+                proposal={proposal.data}
+                submitting={approval.isPending}
+                error={approval.error}
+                submitted={approval.data}
+                onSubmit={(request) => approval.mutate(request)}
+                onCancel={stopDrafting}
+              />
+            ) : (
+              <p className="muted">承認経路の案を読み込んでいます…</p>
+            )
+          ) : (
           <FacilityFormation
             // A fresh view (after a reload or a revision) starts the form again from step 2.
             key={`${view.participationFingerprint}-${view.facility?.version ?? 'new'}-${form.isSuccess}`}
@@ -69,7 +108,13 @@ function FacilityFormationPage() {
               void formation.refetch()
             }}
             onRevise={() => form.reset()}
+            onDraft={() => {
+              form.reset()
+              approval.reset()
+              setDrafting(true)
+            }}
           />
+          )}
         </div>
       </section>
     </>
