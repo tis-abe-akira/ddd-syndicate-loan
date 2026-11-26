@@ -56,21 +56,20 @@ public class ApprovalDecisionService implements ApprovalDecisions {
 
     @Override
     public List<AssignedApproval> assigned(ActingUser user) {
+        requireBusinessUser(user);
         return requests.findAssigned(user.userId());
     }
 
     @Override
     public ApprovalView view(long requestId, ActingUser user) {
+        requireBusinessUser(user);
         return toView(visible(requests.find(requestId, false), requestId, user), user);
     }
 
     @Override
     @Transactional
     public ApprovalView decide(long requestId, DecisionCommand command, ActingUser user) {
-        // precondition: only a business user decides (UC-025, UC-026)
-        if (!user.hasRole(ActingUser.BUSINESS_USER)) {
-            throw new ApprovalForbiddenException("稟議の判断は、業務ユーザーだけができます。");
-        }
+        requireBusinessUser(user);
         // The row stays locked until commit, so decisions on one request are serialized (UC-025 BR-002).
         ApprovalRequestState state = visible(requests.find(requestId, true), requestId, user);
         Optional<Reason> blocked = state.blockedReason(user.userId());
@@ -96,6 +95,13 @@ public class ApprovalDecisionService implements ApprovalDecisions {
                     result.reportRecipientIds()));
         }
         return toView(requests.find(state.id(), false).orElseThrow(), user);
+    }
+
+    // precondition of UC-025 and UC-026: only a business user opens and decides requests.
+    private static void requireBusinessUser(ActingUser user) {
+        if (!user.hasRole(ActingUser.BUSINESS_USER)) {
+            throw new ApprovalForbiddenException("稟議を開いて判断できるのは、業務ユーザーだけです。");
+        }
     }
 
     private static ApprovalRequestState visible(Optional<ApprovalRequestState> found, long requestId, ActingUser user) {

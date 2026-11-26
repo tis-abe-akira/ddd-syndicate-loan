@@ -34,7 +34,11 @@ values (6201, 6001, 'UC025_TYPE', 'deal:1', '合議中の稟議', '本文', 6101
        (6205, 6001, 'FACILITY_FORMATION', 'facility:6601', 'ファシリティ組成', null, 6101, 'IN_APPROVAL', 1,
         timestamp '2026-11-30 10:00:00', null, 0),
        (6206, 6001, 'FACILITY_FORMATION', 'facility:6602', '稟議にかかっていないファシリティ', null, 6101,
-        'IN_APPROVAL', 1, timestamp '2026-11-30 10:00:00', null, 0);
+        'IN_APPROVAL', 1, timestamp '2026-11-30 10:00:00', null, 0),
+       (6207, 6001, 'FACILITY_FORMATION', 'facility:6603', '合議中の組成の稟議', null, 6101, 'IN_CONSULTATION',
+        1, timestamp '2026-11-30 10:00:00', null, 0),
+       (6208, 6001, 'FACILITY_FORMATION', 'facility:6604', '合議中の組成の稟議(否決)', null, 6101,
+        'IN_CONSULTATION', 1, timestamp '2026-11-30 10:00:00', null, 0);
 insert into workflow.approval_attribute (request_id, name, value)
 values (6201, 'amount', 500000000);
 insert into workflow.approval_condition (request_id, name, value)
@@ -49,31 +53,44 @@ values (6301, 6201, 1, 'CONSULTATION', null, 6102, true, 'PENDING', null, null),
        (6303, 6201, 1, 'MAIN', 1, 6104, true, 'PENDING', null, null),
        (6304, 6201, 1, 'MAIN', 2, 6105, true, 'PENDING', null, null),
        (6305, 6201, 1, 'REPORT', null, 6106, true, 'PENDING', null, null),
-       (6311, 6202, 1, 'CONSULTATION', null, 6102, true, 'APPROVED', null, timestamp '2026-11-30 11:00:00'),
+       (6311, 6202, 1, 'CONSULTATION', null, 6102, true, 'APPROVED', '異議なし', timestamp '2026-11-30 11:00:00'),
        (6312, 6202, 1, 'MAIN', 1, 6104, true, 'PENDING', null, null),
        (6313, 6202, 1, 'MAIN', 2, 6105, true, 'PENDING', null, null),
        (6314, 6202, 1, 'REPORT', null, 6106, true, 'PENDING', null, null),
        (6321, 6203, 1, 'MAIN', 1, 6104, true, 'APPROVED', null, timestamp '2026-11-30 12:00:00'),
        (6331, 6204, 1, 'MAIN', 1, 6110, true, 'PENDING', null, null),
        (6341, 6205, 1, 'MAIN', 1, 6104, true, 'PENDING', null, null),
-       (6351, 6206, 1, 'MAIN', 1, 6104, true, 'PENDING', null, null);
+       (6351, 6206, 1, 'MAIN', 1, 6104, true, 'PENDING', null, null),
+       (6361, 6207, 1, 'CONSULTATION', null, 6102, true, 'PENDING', null, null),
+       (6362, 6207, 1, 'MAIN', 1, 6104, true, 'PENDING', null, null),
+       (6371, 6208, 1, 'CONSULTATION', null, 6102, true, 'PENDING', null, null),
+       (6372, 6208, 1, 'MAIN', 1, 6104, true, 'PENDING', null, null);
 
 -- 組成の稟議の対象: 6501(組成中)のファシリティ 6601 は稟議 6205 にかかっている。
 -- 6502(組成中)のファシリティ 6602 は、稟議 6206 にかかっていない(UC-026 A8)。
+-- 6503・6504(組成中)のファシリティ 6603・6604 は、合議中の稟議 6207・6208 にかかっている(UC-025 BR-008)。
 insert into syndicate.deal (id, borrower_organization_id, lead_organization_id, purpose, requested_amount,
                             currency, requested_term_months, requested_repayment_method, status, applied_by,
                             applied_at)
 values (6501, 6003, 6001, '設備投資', 300000000, 'JPY', 60, 'EQUAL_INSTALLMENT', 'FORMING', 6101,
         timestamp '2026-09-01 10:00:00'),
        (6502, 6003, 6001, '運転資金', 100000000, 'JPY', 36, 'BULLET_PAYMENT', 'FORMING', 6101,
+        timestamp '2026-09-01 10:00:00'),
+       (6503, 6003, 6001, '設備投資', 100000000, 'JPY', 36, 'BULLET_PAYMENT', 'FORMING', 6101,
+        timestamp '2026-09-01 10:00:00'),
+       (6504, 6003, 6001, '設備投資', 100000000, 'JPY', 36, 'BULLET_PAYMENT', 'FORMING', 6101,
         timestamp '2026-09-01 10:00:00');
 insert into syndicate.deal_participant (id, deal_id, organization_id, role, status, commitment_amount)
 values (6401, 6501, 6004, 'INVESTOR', 'ACCEPTED', 200000000);
 insert into facility.facility (id, deal_id, commitment_amount, currency, start_date, end_date, status,
                                approval_request_id, version)
 values (6601, 6501, 300000000, 'JPY', date '2027-04-01', date '2028-03-31', 'DRAFT', 6205, 1),
-       (6602, 6502, 100000000, 'JPY', date '2027-04-01', date '2028-03-31', 'DRAFT', null, 0);
+       (6602, 6502, 100000000, 'JPY', date '2027-04-01', date '2028-03-31', 'DRAFT', null, 0),
+       (6603, 6503, 100000000, 'JPY', date '2027-04-01', date '2028-03-31', 'DRAFT', 6207, 1),
+       (6604, 6504, 100000000, 'JPY', date '2027-04-01', date '2028-03-31', 'DRAFT', 6208, 1);
 insert into facility.facility_share (facility_id, organization_id, amount)
 values (6601, 6001, 100000000),
        (6601, 6004, 200000000),
-       (6602, 6001, 100000000);
+       (6602, 6001, 100000000),
+       (6603, 6001, 100000000),
+       (6604, 6001, 100000000);
