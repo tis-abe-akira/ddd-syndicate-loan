@@ -14,6 +14,8 @@ import java.util.stream.Collectors;
  * @param version              融資案件のバージョン
  * @param leadOrganizationId   リード銀行
  * @param currency             融資案件の通貨
+ * @param borrowerOrganizationId 借り手
+ * @param purpose              資金使途(組成の稟議の件名の案に使う)
  * @param status               融資案件の状態
  * @param acceptedInvestors    参加を応諾した出資者
  */
@@ -22,6 +24,8 @@ public record DealForFormation(
         int version,
         long leadOrganizationId,
         String currency,
+        long borrowerOrganizationId,
+        String purpose,
         DealStatus status,
         List<AcceptedInvestor> acceptedInvestors) {
 

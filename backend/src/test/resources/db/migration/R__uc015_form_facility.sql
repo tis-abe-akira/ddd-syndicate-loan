@@ -59,3 +59,22 @@ values (9301, 9002, 80000000),
        (9301, 9001, 20000000),
        (9302, 9002, 100000000),
        (9303, 9002, 100000000);
+
+-- 組成の稟議(step 7・8): リード銀行 9001 の職位、承認者、承認経路の規則
+insert into organization.position (id, organization_id, name, rank)
+values (9601, 9001, '課長', 2),
+       (9602, 9001, '部長', 3);
+insert into organization.app_user (id, organization_id, name, email, position_id, active)
+values (9111, 9001, 'リード課長', 'lead.manager@uc015.example.com', 9601, true),
+       (9112, 9001, 'リード部長', 'lead.director@uc015.example.com', 9602, true);
+insert into organization.user_role (user_id, role)
+values (9111, 'BUSINESS_USER'),
+       (9112, 'BUSINESS_USER');
+-- 課長(既定 9111)→ 部長(既定なし、起案者が選ぶ)
+insert into workflow.route_rule (id, organization_id, subject_type, name, priority)
+values (9501, 9001, 'FACILITY_FORMATION', 'UC015 ファシリティ組成', 10);
+insert into workflow.route_rule_condition (id, route_rule_id, attribute_name, min_value, max_value)
+values (9511, 9501, 'amount', 1, null);
+insert into workflow.route_rule_step (id, route_rule_id, kind, step_order, position_id, default_user_id)
+values (9521, 9501, 'MAIN', 1, 9601, 9111),
+       (9522, 9501, 'MAIN', 2, 9602, null);
