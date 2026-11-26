@@ -4,7 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 
+import com.example.syndicateloan.notification.domain.NoticeRepository;
 import com.example.syndicateloan.organization.ActingUser;
 import com.example.syndicateloan.usecase.UseCase;
 import com.example.syndicateloan.workflow.ApprovalConcurrentChangeException;
@@ -45,8 +48,11 @@ import org.springframework.boot.testcontainers.service.connection.ServiceConnect
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
@@ -58,6 +64,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  *   <li>テストデータは {@code src/test/resources/db/migration/R__uc028_resubmit_approval_request.sql}。</li>
  *   <li>各テストはトランザクションの中で動き、終わるとロールバックする。再申請の日時は 2026-12-01 09:00(日本時間)。</li>
  *   <li>拒否の文言は仕様が定めていないので検証しない。理由の種類と、直すべき項目(field)を検証する。</li>
+ *   <li>お知らせの記録({@link NoticeRepository})は本物を包んだスパイで、失敗させたいテストだけが失敗させる。</li>
  * </ul>
  */
 @SpringBootTest
@@ -104,6 +111,9 @@ class UC028ResubmitApprovalRequestServiceTest {
     @Autowired
     private JdbcTemplate jdbc;
 
+    @MockitoSpyBean
+    private NoticeRepository noticeRepository;
+
     // ---------------------------------------------------------------- Main success scenario
 
     @Test
@@ -149,6 +159,13 @@ class UC028ResubmitApprovalRequestServiceTest {
 
         assertThat(submitted.requestId()).isEqualTo(SENT_BACK);
         assertThat(submitted.status()).isEqualTo(ApprovalStatus.IN_CONSULTATION);
+        // step 10: 再申請した稟議と、新しい回の承認経路を示す
+        assertThat(submitted.steps()).extracting(SubmittedApproval.Step::kind, SubmittedApproval.Step::order,
+                        SubmittedApproval.Step::userId, SubmittedApproval.Step::autoAssigned)
+                .containsExactly(
+                        tuple(StepKind.CONSULTATION, null, REVIEWER, true),
+                        tuple(StepKind.MAIN, 1, MANAGER, true),
+                        tuple(StepKind.REPORT, null, REPORTER, true));
         // step 8: 申請の回を1増やし、件名・本文・規則・再申請の日時を記録する。種類・対象・起案者は変わらない
         Map<String, Object> request = jdbc.queryForMap("select * from workflow.approval_request where id = ?",
                 SENT_BACK);
@@ -192,6 +209,11 @@ class UC028ResubmitApprovalRequestServiceTest {
 
         assertThat(submitted.status()).isEqualTo(ApprovalStatus.IN_APPROVAL);
         assertThat(steps(2)).containsExactly("MAIN:8104:PENDING", "MAIN:8105:PENDING");
+        // UC-024 BR-003: 既定の利用者のいない段に入れた部長は、規則の案から差し替えた段と分かる
+        assertThat(submitted.steps()).extracting(SubmittedApproval.Step::userId, SubmittedApproval.Step::autoAssigned)
+                .containsExactly(tuple(MANAGER, true), tuple(DIRECTOR_A, false));
+        assertThat(jdbc.queryForList("select auto_assigned from workflow.approval_step where request_id = ?"
+                + " and round = 2 order by step_order", Boolean.class, SENT_BACK)).containsExactly(true, false);
         // UC-024 BR-008: 合議先がいなければ、メイントラックの最初の承認者だけに依頼する
         assertThat(notices()).containsExactly("8104:APPROVAL_REQUESTED:approval-request:" + SENT_BACK);
     }
@@ -214,6 +236,55 @@ class UC028ResubmitApprovalRequestServiceTest {
         int reopened = decisions.view(SENT_BACK, consultee()).version();
         assertThat(decisions.decide(SENT_BACK, new DecisionCommand(Decision.APPROVE, null, reopened), consultee())
                 .status()).isEqualTo(ApprovalStatus.IN_APPROVAL);
+    }
+
+    @Test
+    @UseCase(id = "UC-028", scenario = "Main Success Scenario", businessRules = {"BR-003"},
+            requirements = {"NFR-003"})
+    void does_not_take_an_approval_made_on_the_previous_round_on_the_main_track() {
+        int openedBefore = decisions.view(SENT_BACK, manager()).version(); // 回 1 で差し戻した課長が開いた(2)
+        ApprovalSubject subject = subject("deal:1", OVER_100M);
+        approvals.resubmit(resubmission(subject, approvals.proposeResubmission(subject, DRAFTER), "直した件名", null,
+                List.of(main(1, MANAGER), main(2, DIRECTOR_A))), DRAFTER);
+
+        // BR-003(UC-026 A6): 前の回に開いた稟議のままでは、新しい回の承認を記録しない
+        assertThatThrownBy(() -> decisions.decide(SENT_BACK, new DecisionCommand(Decision.APPROVE, null,
+                openedBefore), manager())).isInstanceOf(ApprovalConcurrentChangeException.class);
+        assertThat(steps(2)).first().isEqualTo("MAIN:8104:PENDING");
+
+        int reopened = decisions.view(SENT_BACK, manager()).version();
+        decisions.decide(SENT_BACK, new DecisionCommand(Decision.APPROVE, null, reopened), manager());
+        assertThat(steps(2)).first().isEqualTo("MAIN:8104:APPROVED");
+    }
+
+    /**
+     * 稟議の行を書き換えた後で、判断の依頼のお知らせを記録できずに失敗する(Failure Postconditions)。
+     * 取り消しはテストのトランザクションの外でしか確かめられないので、このテストはトランザクションを持たない。
+     */
+    @Test
+    @UseCase(id = "UC-028", scenario = "Main Success Scenario", businessRules = {"BR-006"})
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    void records_nothing_when_the_notice_cannot_be_recorded_after_the_request_was_updated() {
+        ApprovalSubject subject = subject("deal:1", UNDER_100M);
+        ResubmissionProposal proposal = approvals.proposeResubmission(subject, DRAFTER);
+        doThrow(new DataAccessResourceFailureException("お知らせを記録できない")).when(noticeRepository).insert(any());
+        try {
+            assertThatThrownBy(() -> approvals.resubmit(resubmission(subject, proposal, "直した件名", "直した本文",
+                    List.of(consult(REVIEWER), main(1, MANAGER), report(REPORTER))), DRAFTER))
+                    .isInstanceOf(DataAccessResourceFailureException.class);
+
+            // 稟議の行、経路属性と条件、前の回と新しい回の段、お知らせのどれも、一部だけ残ることはない
+            assertUnchanged();
+            assertThat(jdbc.queryForObject("select value from workflow.approval_attribute where request_id = ?"
+                    + " and name = 'amount'", BigDecimal.class, SENT_BACK)).isEqualByComparingTo("50000000");
+            assertThat(jdbc.queryForList("select name || '=' || value from workflow.approval_condition"
+                    + " where request_id = ? order by name", String.class, SENT_BACK))
+                    .containsExactly("currency=JPY", "term_months=36");
+            assertThat(steps(1)).hasSize(3);
+        } finally {
+            // 取り消されなかった場合でも、他のテストのためにテストデータを元に戻す
+            restoreSentBackRequest();
+        }
     }
 
     // ---------------------------------------------------------------- A1、A2、A3
@@ -358,6 +429,42 @@ class UC028ResubmitApprovalRequestServiceTest {
     }
 
     @Test
+    @UseCase(id = "UC-028", scenario = "A6: 再申請の間に稟議か規則が変わった", businessRules = {"BR-004"},
+            requirements = {"NFR-003"})
+    void shows_a_step_to_fix_when_its_user_became_inactive_after_the_route_was_shown() {
+        ApprovalSubject subject = subject("deal:1", UNDER_100M);
+        ResubmissionProposal proposal = approvals.proposeResubmission(subject, DRAFTER);
+        jdbc.update("update organization.app_user set active = false where id = ?", MANAGER);
+
+        InvalidApprovalDraftException e = catchThrowableOfType(InvalidApprovalDraftException.class,
+                () -> approvals.resubmit(resubmission(subject, proposal, "直した件名", null,
+                        List.of(consult(REVIEWER), main(1, MANAGER), report(REPORTER))), DRAFTER));
+
+        // A6: 承認経路の利用者が無効になったら、A5 で直すべき段として示す
+        assertThat(e).isNotNull();
+        assertThat(e.errors()).extracting(DraftError::field).containsExactly("steps[1]");
+        assertUnchanged();
+    }
+
+    @Test
+    @UseCase(id = "UC-028", scenario = "A6: 再申請の間に稟議か規則が変わった", businessRules = {"BR-004"},
+            requirements = {"NFR-003"})
+    void shows_a_step_to_fix_when_its_user_lost_the_position_after_the_route_was_shown() {
+        ApprovalSubject subject = subject("deal:1", UNDER_100M);
+        ResubmissionProposal proposal = approvals.proposeResubmission(subject, DRAFTER);
+        jdbc.update("update organization.app_user set position_id = 8601 where id = ?", MANAGER); // 課長 → 担当
+
+        InvalidApprovalDraftException e = catchThrowableOfType(InvalidApprovalDraftException.class,
+                () -> approvals.resubmit(resubmission(subject, proposal, "直した件名", null,
+                        List.of(consult(REVIEWER), main(1, MANAGER), report(REPORTER))), DRAFTER));
+
+        // A6: 承認経路の利用者の職位が変わったら、A5 で直すべき段として示す
+        assertThat(e).isNotNull();
+        assertThat(e.errors()).extracting(DraftError::field).containsExactly("steps[1]");
+        assertUnchanged();
+    }
+
+    @Test
     @UseCase(id = "UC-028", scenario = "Main Success Scenario")
     void lets_only_business_users_resubmit() {
         ApprovalSubject subject = subject("deal:1", UNDER_100M);
@@ -385,6 +492,25 @@ class UC028ResubmitApprovalRequestServiceTest {
 
     private static ActingUser consultee() {
         return new ActingUser(REVIEWER, 8001, Set.of("BUSINESS_USER"));
+    }
+
+    private static ActingUser manager() {
+        return new ActingUser(MANAGER, 8001, Set.of("BUSINESS_USER"));
+    }
+
+    /** 差し戻された稟議 8201 を、テストデータのとおりに戻す(トランザクションを持たないテストの後始末)。 */
+    private void restoreSentBackRequest() {
+        jdbc.update("update workflow.approval_request set status = 'DRAFT', round = 1, title = '前の件名',"
+                + " body = '前の本文', route_rule_id = 8501, submitted_at = timestamp '2026-11-30 10:00:00',"
+                + " version = 2 where id = ?", SENT_BACK);
+        jdbc.update("delete from workflow.approval_step where request_id = ? and round > 1", SENT_BACK);
+        jdbc.update("delete from workflow.approval_attribute where request_id = ?", SENT_BACK);
+        jdbc.update("insert into workflow.approval_attribute (request_id, name, value) values (?, 'amount', 50000000)",
+                SENT_BACK);
+        jdbc.update("delete from workflow.approval_condition where request_id = ?", SENT_BACK);
+        jdbc.update("insert into workflow.approval_condition (request_id, name, value)"
+                + " values (?, 'currency', 'JPY'), (?, 'term_months', '36')", SENT_BACK, SENT_BACK);
+        jdbc.update("delete from notification.notice where subject_ref = ?", "approval-request:" + SENT_BACK);
     }
 
     private static StepAssignment consult(Long userId) {

@@ -174,6 +174,19 @@ class UC026ApproveApprovalRequestApiTest {
     }
 
     @Test
+    @UseCase(id = "UC-026", scenario = "A6: 判断の間に稟議が変わった", requirements = {"NFR-003"})
+    void records_nothing_when_the_request_was_resubmitted_after_it_was_opened() {
+        // 6210 は、回 1 のとき(version 1)に開かれた後、差し戻されて再申請され、回 2(version 2)になった
+        MvcTestResult result = decide(6210, MAIN_2, "APPROVE", null, 1);
+
+        assertProblem(result, 409, "/problems/concurrent-change");
+        assertThat(status(6210)).isEqualTo("IN_APPROVAL");
+        // 開き直せば、新しい回で承認できる
+        assertThat(decide(6210, MAIN_2, "APPROVE", null, 2)).bodyJson().extractingPath("$.status").asString()
+                .isEqualTo("APPROVED");
+    }
+
+    @Test
     @UseCase(id = "UC-026", scenario = "A1: 稟議が見つからない", requirements = {"NFR-007"})
     void hides_requests_of_other_organizations() {
         assertProblem(open(6204, MAIN_1), 404, "/problems/not-found");

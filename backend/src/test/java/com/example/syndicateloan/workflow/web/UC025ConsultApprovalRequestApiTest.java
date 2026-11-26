@@ -261,6 +261,21 @@ class UC025ConsultApprovalRequestApiTest {
     }
 
     @Test
+    @UseCase(id = "UC-025", scenario = "A6: 判断の間に稟議が変わった", requirements = {"NFR-003"})
+    void records_nothing_when_the_request_was_resubmitted_after_it_was_opened() {
+        // 6209 は、回 1 のとき(version 2)に開かれた後、差し戻されて再申請され、回 2(version 3)になった
+        MvcTestResult result = decide(6209, CONSULT_B, "APPROVE", null, 2);
+
+        assertProblem(result, 409, "/problems/concurrent-change");
+        assertThat(steps(6209)).contains("6384:PENDING");
+        // 開き直せば、新しい回で判断できる
+        assertThat(open(6209, CONSULT_B)).bodyJson().extractingPath("$.version").asNumber()
+                .satisfies(n -> assertThat(n.intValue()).isEqualTo(3));
+        assertThat(decide(6209, CONSULT_B, "APPROVE", null, 3)).hasStatusOk();
+        assertThat(steps(6209)).contains("6384:APPROVED");
+    }
+
+    @Test
     @UseCase(id = "UC-025", scenario = "Main Success Scenario", businessRules = {"BR-001"})
     void lets_a_consultee_approve_after_another_one_approved_in_parallel() {
         int viewed = 0; // 合議 A が開いた後、合議 B が先に承認する
