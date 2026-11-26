@@ -35,7 +35,8 @@ values (7501, 7001, 'UC024_TYPE', '10億円未満', 10),
        (7504, 7001, 'UC024_PRIO', 'スコア80以上', 1),
        (7505, 7001, 'UC024_NOMAIN', 'メイントラックなし', 10),
        (7506, 7001, 'UC024_NOCONSULT', '合議なし', 10),
-       (7507, 7002, 'UC024_TYPE', '他行の規則', 1);
+       (7507, 7002, 'UC024_TYPE', '他行の規則', 1),
+       (7508, 7001, 'UC024_CONSULTPOS', '合議の段に職位あり', 10);
 insert into workflow.route_rule_condition (id, route_rule_id, attribute_name, min_value, max_value)
 values (7511, 7501, 'amount', null, 1000000000),
        (7512, 7502, 'amount', 1000000000, null),
@@ -55,4 +56,7 @@ values (7521, 7501, 'CONSULTATION', null, null, 7107),
        (7542, 7504, 'MAIN', 1, 7603, 7104),
        (7551, 7505, 'CONSULTATION', null, null, 7107),
        (7561, 7506, 'MAIN', 1, 7602, 7102),
-       (7571, 7507, 'MAIN', 1, 7611, 7110);
+       (7571, 7507, 'MAIN', 1, 7611, 7110),
+       (7581, 7508, 'CONSULTATION', null, 7603, null),
+       (7582, 7508, 'MAIN', 1, 7602, 7102),
+       (7583, 7508, 'REPORT', null, 7603, null);
