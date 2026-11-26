@@ -104,6 +104,8 @@ reference and corrects them. Do not edit the rows by hand; rerun the layer skill
 | Service     | spring-service   | Code | `// UC-XXX BR-YYY:` directly above the service method or guard clause that enforces the rule |
 | Service     | spring-service   | Code | `UC-XXX` in the Javadoc of the public service method that realizes a step or an alternative flow |
 | Service     | spring-service   | Name | `<Entity>Service` classes annotated `@Service`; domain exceptions `<Reason>Exception` |
+| Service     | spring-service-test | Test | `@UseCase(id = "UC-XXX", scenario = "…", businessRules = {"BR-YYY"}, requirements = {"NFR-XXX"})` on every service test method |
+| Service     | spring-service-test | Name | `UC<id><Name>ServiceTest`, e.g. `UC001RegisterGuestServiceTest` |
 | API         | spring-rest      | Code | `UC-XXX` in the Javadoc of the `@RestController` handler method that realizes a step or an alternative flow |
 | API         | spring-rest      | Code | `// UC-XXX BR-YYY:` directly above a request DTO constraint that repeats a rule the service enforces |
 | API         | spring-rest      | Name | `<Entity>Controller` classes annotated `@RestController`; `<Entity>Request` / `<Entity>Response` records |
