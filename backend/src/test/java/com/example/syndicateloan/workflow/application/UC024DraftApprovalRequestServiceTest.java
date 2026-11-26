@@ -494,6 +494,32 @@ class UC024DraftApprovalRequestServiceTest {
                 Integer.class)).isEqualTo(1);
     }
 
+    @Test
+    @UseCase(id = "UC-024", scenario = "A6: 起案の間に規則か同じ対象の稟議が変わった", requirements = {"NFR-003"})
+    void registers_nothing_when_no_rule_matches_any_more_after_drafting_started() {
+        ApprovalSubject subject = subject("deal:1", UNDER_ONE_BILLION);
+        ProposedRoute route = approvals.propose(subject, DRAFTER);
+        // 起案の間に、別の操作で規則の条件が変わり、この稟議に合う規則がなくなる
+        jdbc.update("update workflow.route_rule_condition set max_value = 1 where id = 7511");
+        jdbc.update("update workflow.route_rule set version = version + 1 where id = 7501");
+
+        assertThatThrownBy(() -> approvals.submit(draft(subject, route, defaultSteps()), DRAFTER))
+                .isInstanceOf(ApprovalConcurrentChangeException.class);
+        assertThat(count("workflow.approval_request")).isZero();
+    }
+
+    @Test
+    @UseCase(id = "UC-024", scenario = "A7: 起案者が申請をやめる")
+    void leaves_nothing_behind_when_the_drafter_stops_before_submitting() {
+        approvals.propose(subject("deal:1", UNDER_ONE_BILLION), DRAFTER);
+
+        // 申請しない: 稟議も承認経路もお知らせも残らず、同じ対象をすぐ起案し直せる
+        assertThat(count("workflow.approval_request")).isZero();
+        assertThat(count("workflow.approval_step")).isZero();
+        assertThat(count("notification.notice")).isZero();
+        assertThat(submitDefault("deal:1")).isPositive();
+    }
+
     // ---------------------------------------------------------------- 前提条件、BR-003 の候補、NFR-007
 
     @Test

@@ -21,6 +21,7 @@ run-buddy の `backend/CLAUDE.md` と ADR-0004 / ADR-0007 の方針を、本シ�
 |---|---|
 | `organization` | 利用組織・利用者・ロール・職位([ADR-003](decisions/ADR-003-shared-organization-module.md))。シンジケートローンの知識を持たない |
 | `workflow` | 承認ワークフロー(稟議)([ADR-002](decisions/ADR-002-independent-workflow-module.md))。業務に依存しない |
+| `notification` | お知らせ。`workflow` の公開イベントを受けて、利用者の画面に届くお知らせを記録する。依存してよいのは `organization` と `workflow` だけ |
 | `party` | 借り手・出資者の業務上の情報(融資案件での立場、審査など)。利用組織そのものは `organization` |
 | `syndicate` | Syndicate |
 | `facility` | Facility / SharePie / FacilityInvestment |
@@ -70,7 +71,7 @@ SaaS として切り出すときは、`workflow` と `organization` を一緒に
 | 融資案件ごとの立場(リード銀行・出資者)は、業務モジュールが持つ | シンジケートローン固有の知識を `organization` に入れない |
 | テナントは組織とする。他の組織の申請は見えない | 各社の稟議が社内で閉じる要件(06)と、SaaS のテナント分離を同じ仕組みで満たす |
 | `workflow` のテーブルは専用のスキーマに置き、業務のテーブルへの外部キーを持たない | データごと切り出せる |
-| 通知は、`workflow` のイベントを通知の仕組みが受けて送る(07 の通知) | 通知の手段を `workflow` に持ち込まない |
+| 通知は、`workflow` のイベントを通知の仕組み(`notification` モジュール)が受けて送る(07 の通知)。`notification` が依存してよいのは `organization` と `workflow` だけ(構造テストで検査する) | 通知の手段を `workflow` に持ち込まない |
 
 ## 2. ポート&アダプタ
 

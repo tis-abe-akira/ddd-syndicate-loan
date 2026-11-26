@@ -58,6 +58,7 @@ actor without a row is a person or a role. Without a Client layer the section is
 - **バックエンド**: `backend/` の一つの Maven プロジェクト(単一モジュール)。ルートのパッケージは `com.example.syndicateloan`(仮。`tech-stack.md` の未決事項)。
 - **アプリケーションのモジュール**: ルートの直下のパッケージを Spring Modulith のモジュールとする。一覧と依存の規則は [設計方針](design-principles.md) の「想定するパッケージ」と「ワークフローの独立」、ADR-002・ADR-003 による。
   - `organization`(利用組織・利用者・ロール・職位)と `workflow`(承認ワークフロー)は、業務から独立したモジュール。
+  - `notification`(お知らせ)は、`workflow` の公開イベントを受けてお知らせを記録する。依存してよいのは `organization` と `workflow` だけ(#41)。
   - 業務のモジュールは `party`・`syndicate`・`facility`・`loan`・`fee`・`transaction`。共通の値(`Money` など)は `shared`。
 - **モジュールの中の層**: 各モジュールの下に、次のパッケージを置く。
   - `domain`: 不変のドメイン型と、リポジトリ・外部システムのポート(インターフェース)
@@ -101,6 +102,8 @@ reference and corrects them. Do not edit the rows by hand; rerun the layer skill
 | Migration   | flyway-schema    | Name | `<location>/V*__*.sql`, named after the tables they change, never after a use case — search them by table and column |
 | Persistence | jooq-persistence | Code | `// UC-XXX BR-YYY:` directly above the jOOQ `.where(...)`/`.and(...)` condition or query that enforces the rule |
 | Persistence | jooq-persistence | Name | `<Aggregate>Repository` (`@Repository` with a `DSLContext`, or the adapter implementing that outbound port in a hexagonal layout), named after the aggregate root, never a use case |
+| Persistence | jooq-persistence-test | Test | `@UseCase(id = "UC-XXX", scenario = "…", businessRules = {"BR-YYY"}, requirements = {"NFR-XXX"})` on every repository test method |
+| Persistence | jooq-persistence-test | Name | `UC<id><Name>RepositoryTest`, e.g. `UC001RegisterPersonRepositoryTest`; test data in `src/test/resources/db/migration/R__uc<id>_<slug>.sql` |
 | Service     | spring-service   | Code | `// UC-XXX BR-YYY:` directly above the service method or guard clause that enforces the rule |
 | Service     | spring-service   | Code | `UC-XXX` in the Javadoc of the public service method that realizes a step or an alternative flow |
 | Service     | spring-service   | Name | `<Entity>Service` classes annotated `@Service`; domain exceptions `<Reason>Exception` |

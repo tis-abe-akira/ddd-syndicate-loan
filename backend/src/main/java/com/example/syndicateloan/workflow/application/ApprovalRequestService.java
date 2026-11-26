@@ -74,7 +74,12 @@ public class ApprovalRequestService implements ApprovalRequests {
         ApprovalSubject subject = draft.subject();
         checkDrafter(drafter);
         checkSubject(subject, drafter);
-        RouteRule rule = chooseRule(rules.lockBySubjectType(drafter.organizationId(), subject.subjectType()), subject);
+        // UC-024 A6: the rule shown at step 4 was passed by propose, so no matching rule now means
+        // another operation changed the rules while the request was drafted.
+        RouteRule rule = RouteRule.choose(rules.lockBySubjectType(drafter.organizationId(), subject.subjectType()),
+                        subject.attributes())
+                .orElseThrow(() -> new ApprovalConcurrentChangeException(
+                        "承認経路の規則が、別の操作で変わりました。起案をやり直してください。"));
         // UC-024 A6: the rule chosen at step 3 changed (or another one now applies); register nothing.
         if (rule.id() != draft.routeRuleId() || rule.version() != draft.routeRuleVersion()) {
             throw new ApprovalConcurrentChangeException("承認経路の規則が、別の操作で変わりました。起案をやり直してください。");
