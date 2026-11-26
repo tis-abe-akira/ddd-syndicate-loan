@@ -27,12 +27,24 @@ public class JooqRouteRuleRepository implements RouteRuleRepository {
 
     @Override
     public List<RouteRule> findBySubjectType(long organizationId, String subjectType) {
-        return ctx.selectFrom(ROUTE_RULE)
+        return read(organizationId, subjectType, false);
+    }
+
+    @Override
+    @Transactional
+    public List<RouteRule> lockBySubjectType(long organizationId, String subjectType) {
+        return read(organizationId, subjectType, true);
+    }
+
+    private List<RouteRule> read(long organizationId, String subjectType, boolean lock) {
+        var query = ctx.selectFrom(ROUTE_RULE)
                 // UC-024 BR-001: only the drafter's organization's rules for the same subject type.
                 .where(ROUTE_RULE.ORGANIZATION_ID.eq(organizationId))
                 .and(ROUTE_RULE.SUBJECT_TYPE.eq(subjectType))
-                .orderBy(ROUTE_RULE.PRIORITY)
-                .fetch(rule -> new RouteRule(
+                .orderBy(ROUTE_RULE.PRIORITY);
+        // UC-024 A6 / NFR-003: on submit, the rules cannot change until the request is registered.
+        var rules = lock ? query.forShare().fetch() : query.fetch();
+        return rules.map(rule -> new RouteRule(
                         rule.getId(),
                         rule.getOrganizationId(),
                         rule.getSubjectType(),

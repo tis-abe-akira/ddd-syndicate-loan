@@ -146,14 +146,12 @@ public record RoutePlanner(RouteRule rule, Member drafter, Map<Long, Position> p
 
     /** 規則の段に入れられる利用者か(候補の絞り込み)。 */
     private boolean isEligible(RuleStep step, Member member) {
+        // UC-024 BR-004: the drafter is offered only as a report recipient.
         if (step.kind() != StepKind.REPORT && member.userId() == drafter.userId()) {
             return false;
         }
-        if (step.kind() == StepKind.MAIN) {
-            return rankError(step, member) == null;
-        }
-        Position required = step.positionId() == null ? null : positions.get(step.positionId());
-        return required == null || member.rank() >= required.rank();
+        // UC-024 BR-003: consultees and reports can be anyone; only main steps are bound by position.
+        return step.kind() != StepKind.MAIN || rankError(step, member) == null;
     }
 
     // UC-024 BR-003: a main step takes the required position or higher, below the next step's.

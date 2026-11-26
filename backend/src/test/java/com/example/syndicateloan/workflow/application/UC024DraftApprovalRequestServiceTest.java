@@ -9,6 +9,7 @@ import com.example.syndicateloan.usecase.UseCase;
 import com.example.syndicateloan.workflow.ApprovalConcurrentChangeException;
 import com.example.syndicateloan.workflow.ApprovalDraft;
 import com.example.syndicateloan.workflow.ApprovalDraft.StepAssignment;
+import com.example.syndicateloan.workflow.ApprovalForbiddenException;
 import com.example.syndicateloan.workflow.ApprovalNotAllowedException;
 import com.example.syndicateloan.workflow.ApprovalNotAllowedException.Reason;
 import com.example.syndicateloan.workflow.ApprovalRequests;
@@ -101,7 +102,7 @@ class UC024DraftApprovalRequestServiceTest {
     // ---------------------------------------------------------------- Main success scenario
 
     @Test
-    @UseCase(id = "UC-024", businessRules = {"BR-001", "BR-002"})
+    @UseCase(id = "UC-024", scenario = "Main Success Scenario", businessRules = {"BR-001", "BR-002"})
     void proposes_the_route_of_the_matching_rule_with_the_title_proposal() {
         ProposedRoute route = approvals.propose(subject("deal:1", UNDER_ONE_BILLION), DRAFTER);
 
@@ -118,7 +119,8 @@ class UC024DraftApprovalRequestServiceTest {
     }
 
     @Test
-    @UseCase(id = "UC-024", requirements = {"NFR-009"})
+    @UseCase(id = "UC-024", scenario = "Main Success Scenario", businessRules = {"BR-007", "BR-010"},
+            requirements = {"NFR-009"})
     void submits_the_request_in_consultation_and_records_everything_it_carries() {
         ApprovalSubject subject = subject("deal:1", new BigDecimal("1800000000"));
         ProposedRoute route = approvals.propose(subject, DRAFTER);
@@ -149,20 +151,21 @@ class UC024DraftApprovalRequestServiceTest {
                 .containsExactly("currency=JPY");
         // every step of round 1 waits for its decision
         assertThat(jdbc.queryForList("""
-                select kind, step_order, actor_id, round, decision from workflow.approval_step
+                select kind, step_order, actor_id, round, decision, auto_assigned from workflow.approval_step
                 where request_id = ? order by id""", submitted.requestId()))
                 .extracting(row -> row.get("kind") + ":" + row.get("step_order") + ":" + row.get("actor_id") + ":"
-                        + row.get("round") + ":" + row.get("decision"))
+                        + row.get("round") + ":" + row.get("decision") + ":" + row.get("auto_assigned"))
+                // the 部長 step had no default user, so the drafter's choice is recorded as not from the rule
                 .containsExactly(
-                        "CONSULTATION:null:7107:1:PENDING",
-                        "MAIN:1:7102:1:PENDING",
-                        "MAIN:2:7105:1:PENDING",
-                        "MAIN:3:7106:1:PENDING",
-                        "REPORT:null:7108:1:PENDING");
+                        "CONSULTATION:null:7107:1:PENDING:true",
+                        "MAIN:1:7102:1:PENDING:true",
+                        "MAIN:2:7105:1:PENDING:false",
+                        "MAIN:3:7106:1:PENDING:true",
+                        "REPORT:null:7108:1:PENDING:true");
     }
 
     @Test
-    @UseCase(id = "UC-024", businessRules = {"BR-008"})
+    @UseCase(id = "UC-024", scenario = "Main Success Scenario", businessRules = {"BR-008"})
     void sends_the_consultation_request_to_every_consultee_and_nothing_to_the_others() {
         ApprovalSubject subject = subject("deal:1", UNDER_ONE_BILLION);
         ProposedRoute route = approvals.propose(subject, DRAFTER);
@@ -177,7 +180,7 @@ class UC024DraftApprovalRequestServiceTest {
     }
 
     @Test
-    @UseCase(id = "UC-024", businessRules = {"BR-008"})
+    @UseCase(id = "UC-024", scenario = "Main Success Scenario", businessRules = {"BR-008"})
     void puts_a_request_without_consultees_in_approval_and_asks_only_the_first_approver() {
         ApprovalSubject subject = new ApprovalSubject("UC024_NOCONSULT", "deal:1", "件名", Map.of(), Map.of());
         ProposedRoute route = approvals.propose(subject, DRAFTER);
@@ -191,19 +194,19 @@ class UC024DraftApprovalRequestServiceTest {
     // ---------------------------------------------------------------- BR-001: 規則の選び方
 
     @Test
-    @UseCase(id = "UC-024", businessRules = {"BR-001"})
+    @UseCase(id = "UC-024", scenario = "Main Success Scenario", businessRules = {"BR-001"})
     void includes_the_lower_bound_of_a_condition() {
         assertThat(approvals.propose(subject("deal:1", ONE_BILLION), DRAFTER).routeRuleId()).isEqualTo(7502);
     }
 
     @Test
-    @UseCase(id = "UC-024", businessRules = {"BR-001"})
+    @UseCase(id = "UC-024", scenario = "Main Success Scenario", businessRules = {"BR-001"})
     void excludes_the_upper_bound_of_a_condition() {
         assertThat(approvals.propose(subject("deal:1", UNDER_ONE_BILLION), DRAFTER).routeRuleId()).isEqualTo(7501);
     }
 
     @Test
-    @UseCase(id = "UC-024", businessRules = {"BR-001"})
+    @UseCase(id = "UC-024", scenario = "Main Success Scenario", businessRules = {"BR-001"})
     void chooses_the_rule_with_the_smallest_priority_when_several_match() {
         ApprovalSubject subject = new ApprovalSubject("UC024_PRIO", "deal:1", "件名",
                 Map.of("amount", BigDecimal.ONE, "credit_score", new BigDecimal("80")), Map.of());
@@ -212,7 +215,7 @@ class UC024DraftApprovalRequestServiceTest {
     }
 
     @Test
-    @UseCase(id = "UC-024", businessRules = {"BR-001"})
+    @UseCase(id = "UC-024", scenario = "Main Success Scenario", businessRules = {"BR-001"})
     void does_not_match_a_rule_whose_attribute_is_missing() {
         ApprovalSubject subject = new ApprovalSubject("UC024_PRIO", "deal:1", "件名",
                 Map.of("amount", BigDecimal.ONE), Map.of());
@@ -221,7 +224,7 @@ class UC024DraftApprovalRequestServiceTest {
     }
 
     @Test
-    @UseCase(id = "UC-024", businessRules = {"BR-001"}, requirements = {"NFR-007"})
+    @UseCase(id = "UC-024", scenario = "Main Success Scenario", businessRules = {"BR-001"}, requirements = {"NFR-007"})
     void uses_only_the_rules_of_the_drafters_organization() {
         // 他行の同じ種類の規則 7507 は優先順位が1でも選ばれない
         assertThat(approvals.propose(subject("deal:1", UNDER_ONE_BILLION), DRAFTER).routeRuleId()).isEqualTo(7501);
@@ -255,7 +258,7 @@ class UC024DraftApprovalRequestServiceTest {
     }
 
     @Test
-    @UseCase(id = "UC-024", businessRules = {"BR-009"})
+    @UseCase(id = "UC-024", scenario = "Main Success Scenario", businessRules = {"BR-009"})
     void allows_a_request_for_another_subject_while_one_is_in_progress() {
         submitDefault("deal:1");
 
@@ -313,7 +316,7 @@ class UC024DraftApprovalRequestServiceTest {
     }
 
     @Test
-    @UseCase(id = "UC-024", businessRules = {"BR-003"})
+    @UseCase(id = "UC-024", scenario = "Main Success Scenario", businessRules = {"BR-003"})
     void records_which_steps_the_drafter_replaced() {
         ApprovalSubject subject = subject("deal:1", UNDER_ONE_BILLION);
         ProposedRoute route = approvals.propose(subject, DRAFTER);
@@ -327,7 +330,7 @@ class UC024DraftApprovalRequestServiceTest {
     }
 
     @Test
-    @UseCase(id = "UC-024", businessRules = {"BR-003"})
+    @UseCase(id = "UC-024", scenario = "Main Success Scenario", businessRules = {"BR-003"})
     void lets_the_drafter_add_and_remove_consultees_and_reports() {
         ApprovalSubject subject = subject("deal:1", UNDER_ONE_BILLION);
         ProposedRoute route = approvals.propose(subject, DRAFTER);
@@ -400,7 +403,7 @@ class UC024DraftApprovalRequestServiceTest {
     }
 
     @Test
-    @UseCase(id = "UC-024", businessRules = {"BR-004"})
+    @UseCase(id = "UC-024", scenario = "Main Success Scenario", businessRules = {"BR-004"})
     void lets_the_drafter_receive_the_report() {
         assertThat(submit(List.of(main(1, MANAGER_A), main(2, DIRECTOR_A), report(DRAFTER.userId())))).isPositive();
     }
@@ -412,7 +415,7 @@ class UC024DraftApprovalRequestServiceTest {
     }
 
     @Test
-    @UseCase(id = "UC-024", businessRules = {"BR-005"})
+    @UseCase(id = "UC-024", scenario = "Main Success Scenario", businessRules = {"BR-005"})
     void lets_a_report_overlap_a_deciding_step() {
         assertThat(submit(List.of(main(1, MANAGER_A), main(2, DIRECTOR_A), report(MANAGER_A)))).isPositive();
     }
@@ -489,6 +492,49 @@ class UC024DraftApprovalRequestServiceTest {
         assertThat(e.existingRequestId()).isEqualTo(other);
         assertThat(jdbc.queryForObject("select count(*) from workflow.approval_request where subject_ref = 'deal:1'",
                 Integer.class)).isEqualTo(1);
+    }
+
+    // ---------------------------------------------------------------- 前提条件、BR-003 の候補、NFR-007
+
+    @Test
+    @UseCase(id = "UC-024", scenario = "Main Success Scenario")
+    void lets_only_a_business_user_draft_a_request() {
+        ActingUser admin = new ActingUser(DRAFTER.userId(), 7001, Set.of("ORG_ADMIN"));
+        ApprovalSubject subject = subject("deal:1", UNDER_ONE_BILLION);
+        ProposedRoute route = approvals.propose(subject, DRAFTER);
+
+        assertThatThrownBy(() -> approvals.propose(subject, admin)).isInstanceOf(ApprovalForbiddenException.class);
+        assertThatThrownBy(() -> approvals.submit(draft(subject, route, defaultSteps()), admin))
+                .isInstanceOf(ApprovalForbiddenException.class);
+        assertThat(count("workflow.approval_request")).isZero();
+    }
+
+    @Test
+    @UseCase(id = "UC-024", scenario = "A4: 段の承認者が決まらない", businessRules = {"BR-003", "BR-004"})
+    void offers_anyone_for_consultee_and_report_steps_whatever_their_position() {
+        ApprovalSubject subject = new ApprovalSubject("UC024_CONSULTPOS", "deal:1", "件名", Map.of(), Map.of());
+        ProposedRoute route = approvals.propose(subject, DRAFTER);
+
+        // 合議先・報告先の段に職位があっても、職位で絞らない(足し引きは自由)。起案者は報告先にだけ出る
+        assertThat(route.steps().get(0).kind()).isEqualTo(StepKind.CONSULTATION);
+        assertThat(route.steps().get(0).candidates()).extracting(Candidate::userId)
+                .containsExactlyInAnyOrder(MANAGER_A, MANAGER_B, DIRECTOR_A, DIRECTOR_B, HEAD, REVIEWER, REPORTER,
+                        NO_POSITION);
+        assertThat(route.steps().get(2).kind()).isEqualTo(StepKind.REPORT);
+        assertThat(route.steps().get(2).candidates()).extracting(Candidate::userId)
+                .contains(DRAFTER.userId(), NO_POSITION, MANAGER_A);
+    }
+
+    @Test
+    @UseCase(id = "UC-024", scenario = "A1: 同じ対象の稟議が進んでいる", businessRules = {"BR-009"},
+            requirements = {"NFR-007"})
+    void ignores_requests_of_another_organization_for_the_same_subject() {
+        jdbc.update("""
+                insert into workflow.approval_request (organization_id, subject_type, subject_ref, title, drafter_id,
+                    route_rule_id, status, round, submitted_at)
+                values (7002, 'UC024_TYPE', 'deal:1', '他行の稟議', 7110, 7507, 'IN_APPROVAL', 1, now())""");
+
+        assertThat(submitDefault("deal:1")).isPositive();
     }
 
     // ---------------------------------------------------------------- helpers
