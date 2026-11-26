@@ -81,7 +81,7 @@ class UC024ApprovalRequestRepositoryTest {
     }
 
     @Test
-    @UseCase(id = "UC-024", scenario = "A5: 承認経路か件名が正しくない", requirements = {"NFR-003"})
+    @UseCase(id = "UC-024", scenario = "Failure Postconditions")
     void leaves_neither_the_request_nor_its_route_when_writing_the_route_fails() {
         // 稟議の行を書いた後、承認経路の段の書き込みで失敗させる(存在しない利用者)
         NewApprovalRequest broken = new NewApprovalRequest(7001,

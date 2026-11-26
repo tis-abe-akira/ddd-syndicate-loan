@@ -48,7 +48,7 @@ rectangle "シンジケートローン管理システム" {
     usecase "UC-021\n遅延を一覧する" as UC021
     usecase "UC-022\n取引履歴を照会する" as UC022
     usecase "UC-023\n持分と配分を照会する" as UC023
-    usecase "UC-024\n稟議を起案する" as UC024 #PaleTurquoise
+    usecase "UC-024\n稟議を起案する" as UC024 #PaleGreen
     usecase "UC-025\n稟議に合議する" as UC025
     usecase "UC-026\n稟議を承認する" as UC026
     usecase "UC-027\n稟議の報告を確認する" as UC027
@@ -126,6 +126,7 @@ end note
 legend right
   |<#LightBlue>| Status: Reviewed |
   |<#PaleTurquoise>| Status: Approved |
+  |<#PaleGreen>| Status: Tested |
 endlegend
 
 @enduml
