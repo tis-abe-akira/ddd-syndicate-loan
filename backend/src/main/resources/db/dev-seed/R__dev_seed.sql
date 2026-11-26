@@ -50,3 +50,45 @@ values (1301, 1002, 1000000000),
        (1301, 1003, 500000000),
        (1301, 1001, 300000000)
 on conflict do nothing;
+
+-- 承認ワークフロー(UC-024): さくら銀行の職位、職位を持つ利用者、ファシリティ組成の承認経路の規則
+insert into organization.position (id, organization_id, name, rank)
+values (1601, 1001, '担当', 1),
+       (1602, 1001, '課長', 2),
+       (1603, 1001, '部長', 3),
+       (1604, 1001, '本部長', 4)
+on conflict (id) do nothing;
+update organization.app_user set position_id = 1601 where id = 1101 and position_id is null;
+insert into organization.app_user (id, organization_id, name, email, position_id, active)
+values (1104, 1001, '田中 誠', 'makoto.tanaka@sakura-bank.example.com', 1602, true),
+       (1105, 1001, '伊藤 美咲', 'misaki.ito@sakura-bank.example.com', 1603, true),
+       (1106, 1001, '渡辺 剛', 'tsuyoshi.watanabe@sakura-bank.example.com', 1604, true),
+       (1107, 1001, '山本 直樹', 'naoki.yamamoto@sakura-bank.example.com', 1603, true),
+       (1108, 1001, '中村 由紀', 'yuki.nakamura@sakura-bank.example.com', 1602, true)
+on conflict (id) do nothing;
+insert into organization.user_role (user_id, role)
+values (1104, 'BUSINESS_USER'), (1105, 'BUSINESS_USER'), (1106, 'BUSINESS_USER'),
+       (1107, 'BUSINESS_USER'), (1108, 'BUSINESS_USER')
+on conflict do nothing;
+
+-- 10億円未満: 合議(審査の中村)→ 課長(田中)→ 部長(既定なし、起案者が選ぶ)、報告は組織管理者(鈴木)
+-- 10億円以上: 上に加えて本部長(渡辺)が最終決裁
+insert into workflow.route_rule (id, organization_id, subject_type, name, priority)
+values (1501, 1001, 'FACILITY_FORMATION', 'ファシリティ組成(10億円未満)', 10),
+       (1502, 1001, 'FACILITY_FORMATION', 'ファシリティ組成(10億円以上)', 20)
+on conflict (id) do nothing;
+insert into workflow.route_rule_condition (id, route_rule_id, attribute_name, min_value, max_value)
+values (1511, 1501, 'amount', null, 1000000000),
+       (1512, 1502, 'amount', 1000000000, null)
+on conflict (id) do nothing;
+insert into workflow.route_rule_step (id, route_rule_id, kind, step_order, position_id, default_user_id)
+values (1521, 1501, 'CONSULTATION', null, null, 1108),
+       (1522, 1501, 'MAIN', 1, 1602, 1104),
+       (1523, 1501, 'MAIN', 2, 1603, null),
+       (1524, 1501, 'REPORT', null, null, 1102),
+       (1531, 1502, 'CONSULTATION', null, null, 1108),
+       (1532, 1502, 'MAIN', 1, 1602, 1104),
+       (1533, 1502, 'MAIN', 2, 1603, null),
+       (1534, 1502, 'MAIN', 3, 1604, 1106),
+       (1535, 1502, 'REPORT', null, null, 1102)
+on conflict (id) do nothing;

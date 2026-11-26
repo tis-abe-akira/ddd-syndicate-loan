@@ -16,7 +16,7 @@ class ModularityTest {
     void modulesAreTheOnesTheArchitectureNames() {
         assertThat(modules.stream().map(ApplicationModule::getDisplayName))
                 .containsExactlyInAnyOrder(
-                        "organization", "workflow", "party", "syndicate",
+                        "organization", "workflow", "notification", "party", "syndicate",
                         "facility", "loan", "fee", "transaction", "shared");
     }
 
