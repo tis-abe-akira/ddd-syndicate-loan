@@ -1,6 +1,6 @@
 package com.example.syndicateloan.workflow;
 
-/** UC-024 A1、A2、A3: 今は起案できない。何も登録していない。 */
+/** UC-024 A1、A2、A3、UC-028 A1、A2、A3: 今は起案(再申請)できない。何も登録していない。 */
 public class ApprovalNotAllowedException extends RuntimeException {
 
     /** 起案できない理由。 */
@@ -11,8 +11,12 @@ public class ApprovalNotAllowedException extends RuntimeException {
         SENT_BACK,
         /** A2: 同じ対象の最後の稟議が否決されている。再起案として起案する(UC-029)。 */
         REJECTED,
-        /** A3: 合う承認経路の規則がない。 */
-        NO_ROUTE_RULE
+        /** A3: 合う承認経路の規則がない(UC-028 A3 も)。 */
+        NO_ROUTE_RULE,
+        /** UC-028 A1: 同じ対象に、再申請できる差し戻された稟議がない。 */
+        NOT_SENT_BACK,
+        /** UC-028 A2: 差し戻された稟議の起案者でない。 */
+        NOT_DRAFTER
     }
 
     private final Reason reason;
@@ -28,7 +32,7 @@ public class ApprovalNotAllowedException extends RuntimeException {
         return reason;
     }
 
-    /** 進んでいるか否決された稟議。A3 では null。 */
+    /** 理由に当たる稟議(進んでいる・差し戻された・否決された稟議)。当たる稟議がなければ null。 */
     public Long existingRequestId() {
         return existingRequestId;
     }

@@ -18,6 +18,13 @@ public interface ApprovalRequestRepository {
      */
     long insert(NewApprovalRequest request);
 
+    /**
+     * 差し戻された稟議を、新しい回として申請し直す(UC-028 step 8)。前の回の段と判断は残す(UC-028 BR-006)。
+     *
+     * @throws com.example.syndicateloan.workflow.ApprovalConcurrentChangeException 読んだ後に変わっていたとき
+     */
+    void resubmit(long requestId, int expectedVersion, ResubmittedRound round);
+
     /** 稟議と、今の回の段。lock なら、呼び出し側のトランザクションが終わるまで行をロックする。 */
     Optional<ApprovalRequestState> find(long requestId, boolean lock);
 

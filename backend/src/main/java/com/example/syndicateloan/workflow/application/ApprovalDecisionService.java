@@ -80,6 +80,10 @@ public class ApprovalDecisionService implements ApprovalDecisions {
             }
             throw notAllowed(blocked.get());
         }
+        if (command.viewedVersion() < state.roundStartedVersion()) {
+            // A6 / UC-028 BR-003: opened in an earlier round; the request was resubmitted since.
+            throw new ApprovalConcurrentChangeException("稟議が再申請されました。開き直してください。");
+        }
         DecisionResult result = state.decide(user.userId(), command.decision(), command.comment(),
                 LocalDateTime.now(clock));
         // UC-025 BR-010: who decided what, with which comment and when.
