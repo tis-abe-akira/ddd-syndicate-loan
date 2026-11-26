@@ -819,8 +819,20 @@ class UC015FormFacilityApiTest {
                 .exchange();
     }
 
+    /**
+     * このテストの利用組織(9001)の行の数。テストデータのマイグレーションはどのテストにも入るので、
+     * 他のユースケースのテストデータを数えないように絞る。
+     */
     private int count(String table) {
-        return jdbc.queryForObject("select count(*) from " + table, Integer.class);
+        String scoped = switch (table) {
+            case "workflow.approval_request" -> table + " where organization_id = 9001";
+            case "workflow.approval_step" -> table + " s join workflow.approval_request r on r.id = s.request_id"
+                    + " where r.organization_id = 9001";
+            case "notification.notice" -> table + " n join organization.app_user u on u.id = n.recipient_id"
+                    + " where u.organization_id = 9001";
+            default -> table;
+        };
+        return jdbc.queryForObject("select count(*) from " + scoped, Integer.class);
     }
 
     // ---------------------------------------------------------------- helpers

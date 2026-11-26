@@ -3,6 +3,7 @@ package com.example.syndicateloan.notification.application;
 import com.example.syndicateloan.notification.domain.NewNotice;
 import com.example.syndicateloan.notification.domain.NoticeKind;
 import com.example.syndicateloan.notification.domain.NoticeRepository;
+import com.example.syndicateloan.workflow.ApprovalCompleted;
 import com.example.syndicateloan.workflow.ApprovalRequested;
 import com.example.syndicateloan.workflow.StepKind;
 import java.time.Clock;
@@ -36,5 +37,27 @@ public class ApprovalNoticeListener {
         LocalDateTime now = LocalDateTime.now(clock);
         event.recipientIds().forEach(recipient -> notices.insert(
                 new NewNotice(recipient, kind, "approval-request:" + event.requestId(), message, now)));
+    }
+
+    /**
+     * UC-025 BR-009・UC-026 BR-009: 差し戻しと否決は起案者に、最終決裁の承認は報告先の全員と起案者に届ける。
+     */
+    @EventListener
+    public void on(ApprovalCompleted event) {
+        LocalDateTime now = LocalDateTime.now(clock);
+        String ref = "approval-request:" + event.requestId();
+        String title = "稟議「" + event.title() + "」";
+        switch (event.outcome()) {
+            case SENT_BACK -> notices.insert(new NewNotice(event.drafterId(), NoticeKind.SENT_BACK, ref,
+                    title + "が差し戻されました。", now));
+            case REJECTED -> notices.insert(new NewNotice(event.drafterId(), NoticeKind.REJECTED, ref,
+                    title + "が否決されました。", now));
+            case APPROVED -> {
+                event.reportRecipientIds().forEach(recipient -> notices.insert(new NewNotice(recipient,
+                        NoticeKind.REPORTED, ref, title + "が最終決裁で承認されました。", now)));
+                notices.insert(new NewNotice(event.drafterId(), NoticeKind.REPORTED, ref,
+                        title + "が最終決裁で承認されました。", now));
+            }
+        }
     }
 }

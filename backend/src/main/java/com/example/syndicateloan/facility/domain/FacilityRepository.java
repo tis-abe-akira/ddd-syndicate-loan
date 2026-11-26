@@ -7,6 +7,8 @@ public interface FacilityRepository {
 
     Optional<Facility> findByDealId(long dealId);
 
+    Optional<Facility> findById(long facilityId);
+
     /** 組成中のファシリティを登録し、id と version を付けて返す。 */
     Facility insert(Facility facility);
 

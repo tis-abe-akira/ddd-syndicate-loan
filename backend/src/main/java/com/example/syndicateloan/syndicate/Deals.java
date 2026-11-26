@@ -20,4 +20,18 @@ public interface Deals {
      * @throws IllegalStateException 融資案件が組成準備中でないとき
      */
     void startFormation(long dealId);
+
+    /**
+     * UC-015 BR-010: 組成の稟議が承認された融資案件を、組成中から組成済みにする。
+     *
+     * @throws IllegalStateException 融資案件が組成中でないとき
+     */
+    void completeFormation(long dealId);
+
+    /**
+     * UC-015 BR-010: 組成の稟議が否決されたか差し戻された融資案件を、組成中から組成準備中に戻す。
+     *
+     * @throws IllegalStateException 融資案件が組成中でないとき
+     */
+    void returnToPreparing(long dealId);
 }

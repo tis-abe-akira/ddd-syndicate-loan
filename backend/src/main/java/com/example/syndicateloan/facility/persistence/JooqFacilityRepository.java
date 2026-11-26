@@ -30,9 +30,18 @@ public class JooqFacilityRepository implements FacilityRepository {
 
     @Override
     public Optional<Facility> findByDealId(long dealId) {
+        return find(FACILITY_.DEAL_ID.eq(dealId));
+    }
+
+    @Override
+    public Optional<Facility> findById(long facilityId) {
+        return find(FACILITY_.ID.eq(facilityId));
+    }
+
+    private Optional<Facility> find(org.jooq.Condition condition) {
         return ctx.selectFrom(FACILITY_)
                 // UC-015 BR-004: A deal has at most one facility.
-                .where(FACILITY_.DEAL_ID.eq(dealId))
+                .where(condition)
                 .fetchOptional()
                 .map(row -> new Facility(
                         row.getId(),

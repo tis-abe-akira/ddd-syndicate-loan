@@ -7,6 +7,15 @@ import static com.example.syndicateloan.workflow.persistence.jooq.generated.Tabl
 
 import com.example.syndicateloan.workflow.ApprovalConcurrentChangeException;
 import com.example.syndicateloan.workflow.ApprovalStatus;
+import com.example.syndicateloan.workflow.AssignedApproval;
+import com.example.syndicateloan.workflow.StepKind;
+import com.example.syndicateloan.workflow.domain.ApprovalRequestState;
+import com.example.syndicateloan.workflow.domain.DecisionResult;
+import com.example.syndicateloan.workflow.domain.StepDecision;
+import com.example.syndicateloan.workflow.domain.StepState;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
 import com.example.syndicateloan.workflow.domain.ApprovalRequestRepository;
 import com.example.syndicateloan.workflow.domain.LatestRequest;
 import com.example.syndicateloan.workflow.domain.NewApprovalRequest;
@@ -87,5 +96,73 @@ public class JooqApprovalRequestRepository implements ApprovalRequestRepository 
                     .execute();
         }
         return id;
+    }
+
+    @Override
+    public Optional<ApprovalRequestState> find(long requestId, boolean lock) {
+        var query = ctx.selectFrom(APPROVAL_REQUEST).where(APPROVAL_REQUEST.ID.eq(requestId));
+        var found = lock ? query.forUpdate().fetchOptional() : query.fetchOptional();
+        return found.map(r -> new ApprovalRequestState(
+                r.getId(), r.getOrganizationId(), r.getSubjectType(), r.getSubjectRef(), r.getTitle(), r.getBody(),
+                r.getDrafterId(), ApprovalStatus.valueOf(r.getStatus()), r.getRound(), r.getVersion(),
+                r.getSubmittedAt(),
+                ctx.selectFrom(APPROVAL_ATTRIBUTE).where(APPROVAL_ATTRIBUTE.REQUEST_ID.eq(requestId))
+                        .fetchMap(APPROVAL_ATTRIBUTE.NAME, APPROVAL_ATTRIBUTE.VALUE),
+                ctx.selectFrom(APPROVAL_CONDITION).where(APPROVAL_CONDITION.REQUEST_ID.eq(requestId))
+                        .fetchMap(APPROVAL_CONDITION.NAME, APPROVAL_CONDITION.VALUE),
+                ctx.selectFrom(APPROVAL_STEP)
+                        // the steps of the current round only
+                        .where(APPROVAL_STEP.REQUEST_ID.eq(requestId)).and(APPROVAL_STEP.ROUND.eq(r.getRound()))
+                        .orderBy(APPROVAL_STEP.ID)
+                        .fetch(st -> new StepState(st.getId(), StepKind.valueOf(st.getKind()), st.getStepOrder(),
+                                st.getPositionId(), st.getActorId(), StepDecision.valueOf(st.getDecision()),
+                                st.getComment(), st.getDecidedAt()))));
+    }
+
+    @Override
+    @Transactional
+    public void apply(long requestId, int expectedVersion, DecisionResult result) {
+        int updated = ctx.update(APPROVAL_REQUEST)
+                .set(APPROVAL_REQUEST.STATUS, result.status().name())
+                .set(APPROVAL_REQUEST.DECIDED_AT, result.decidedAt())
+                .set(APPROVAL_REQUEST.VERSION, APPROVAL_REQUEST.VERSION.plus(1))
+                .where(APPROVAL_REQUEST.ID.eq(requestId))
+                .and(APPROVAL_REQUEST.VERSION.eq(expectedVersion))
+                .execute();
+        if (updated == 0) {
+            throw new ApprovalConcurrentChangeException("稟議が、別の操作で変わりました。");
+        }
+        for (DecisionResult.StepChange change : result.stepChanges()) {
+            ctx.update(APPROVAL_STEP)
+                    .set(APPROVAL_STEP.DECISION, change.decision().name())
+                    .set(APPROVAL_STEP.COMMENT, change.comment())
+                    .set(APPROVAL_STEP.DECIDED_AT, change.decidedAt())
+                    .where(APPROVAL_STEP.ID.eq(change.stepId()))
+                    .and(APPROVAL_STEP.REQUEST_ID.eq(requestId))
+                    .execute();
+        }
+    }
+
+    @Override
+    public List<AssignedApproval> findAssigned(long userId) {
+        // requests where the user has an undecided deciding step in the current round
+        List<Long> ids = ctx.selectDistinct(APPROVAL_REQUEST.ID)
+                .from(APPROVAL_REQUEST)
+                .join(APPROVAL_STEP).on(APPROVAL_STEP.REQUEST_ID.eq(APPROVAL_REQUEST.ID)
+                        .and(APPROVAL_STEP.ROUND.eq(APPROVAL_REQUEST.ROUND)))
+                .where(APPROVAL_REQUEST.STATUS.in(ApprovalStatus.IN_CONSULTATION.name(), ApprovalStatus.IN_APPROVAL.name()))
+                .and(APPROVAL_STEP.ACTOR_ID.eq(userId))
+                .and(APPROVAL_STEP.KIND.ne(StepKind.REPORT.name()))
+                .and(APPROVAL_STEP.DECISION.eq(StepDecision.PENDING.name()))
+                .orderBy(APPROVAL_REQUEST.ID)
+                .fetch(APPROVAL_REQUEST.ID);
+        return ids.stream()
+                .flatMap(id -> find(id, false).stream())
+                // only where it is the user's turn now (UC-026 BR-001)
+                .filter(state -> state.blockedReason(userId).isEmpty())
+                .map(state -> new AssignedApproval(state.id(), state.title(), state.status(),
+                        state.status() == ApprovalStatus.IN_CONSULTATION ? StepKind.CONSULTATION : StepKind.MAIN,
+                        state.submittedAt()))
+                .toList();
     }
 }

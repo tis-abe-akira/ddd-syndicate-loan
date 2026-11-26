@@ -12,4 +12,8 @@ public interface DealRepository {
 
     /** 組成準備中の融資案件を組成中にする。組成準備中でなければ何も変えず false。 */
     boolean markForming(long dealId);
+
+    /** 融資案件の状態を from から to に変える。from でなければ何も変えず false。 */
+    boolean transition(long dealId, com.example.syndicateloan.syndicate.DealStatus from,
+            com.example.syndicateloan.syndicate.DealStatus to);
 }

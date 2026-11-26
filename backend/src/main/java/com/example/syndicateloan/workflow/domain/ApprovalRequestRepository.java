@@ -1,5 +1,7 @@
 package com.example.syndicateloan.workflow.domain;
 
+import com.example.syndicateloan.workflow.AssignedApproval;
+import java.util.List;
 import java.util.Optional;
 
 /** 稟議のポート。 */
@@ -15,4 +17,17 @@ public interface ApprovalRequestRepository {
      *         同じ対象の稟議が、別の操作で先に申請されたとき(UC-024 A6)
      */
     long insert(NewApprovalRequest request);
+
+    /** 稟議と、今の回の段。lock なら、呼び出し側のトランザクションが終わるまで行をロックする。 */
+    Optional<ApprovalRequestState> find(long requestId, boolean lock);
+
+    /**
+     * 判断の結果を記録し、稟議のバージョンを上げる。
+     *
+     * @throws com.example.syndicateloan.workflow.ApprovalConcurrentChangeException 読んだ後に変わっていたとき
+     */
+    void apply(long requestId, int expectedVersion, DecisionResult result);
+
+    /** 利用者が今判断する番の稟議。 */
+    List<AssignedApproval> findAssigned(long userId);
 }
