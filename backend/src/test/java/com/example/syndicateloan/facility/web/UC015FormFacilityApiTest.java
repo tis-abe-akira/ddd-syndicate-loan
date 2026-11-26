@@ -690,6 +690,139 @@ class UC015FormFacilityApiTest {
         assertNoFacility(DEAL_NEW);
     }
 
+    // ---------------------------------------------------------------- step 7・8: 組成の稟議を起案する
+
+    private static final long LEAD_MANAGER = 9111; // 課長、規則の1段目の既定
+    private static final long LEAD_DIRECTOR = 9112; // 部長、規則の2段目(既定なし)
+
+    @Test
+    @UseCase(id = "UC-015", businessRules = {"BR-005"})
+    void proposes_the_formation_request_with_the_route_of_the_matching_rule() {
+        MvcTestResult result = mvc.get().uri("/api/deals/{id}/facility/approval-proposal", DEAL_DRAFT)
+                .header("X-Acting-User", String.valueOf(LEAD_USER)).exchange();
+
+        assertThat(result).hasStatusOk();
+        var json = assertThat(result).bodyJson();
+        json.extractingPath("$.facilityId").asNumber().isEqualTo(9301);
+        json.extractingPath("$.facilityVersion").asNumber().isEqualTo(3);
+        json.extractingPath("$.routeRuleId").asNumber().isEqualTo(9501);
+        json.extractingPath("$.title").asString().isEqualTo("UC015 借り手 組成中のファシリティあり ファシリティ組成");
+        json.extractingPath("$.steps[*].kind").asArray().containsExactly("MAIN", "MAIN");
+        json.extractingPath("$.steps[0].userId").asNumber().isEqualTo(9111);
+        json.extractingPath("$.steps[1].userId").isNull();
+        json.extractingPath("$.steps[1].candidates[*].userId").asArray().containsExactly(9112);
+        assertThat(count("workflow.approval_request")).isZero();
+    }
+
+    @Test
+    @UseCase(id = "UC-015", businessRules = {"BR-005", "BR-007", "BR-010"})
+    void puts_the_facility_under_approval_and_the_deal_in_formation() {
+        MvcTestResult result = submitFormationRequest(DEAL_DRAFT, LEAD_USER, 3, LEAD_DIRECTOR);
+
+        assertThat(result).hasStatus(201);
+        assertThat(result).bodyJson().extractingPath("$.status").asString().isEqualTo("IN_APPROVAL");
+        Long requestId = jdbc.queryForObject("select approval_request_id from facility.facility where id = 9301",
+                Long.class);
+        assertThat(requestId).isNotNull();
+        // BR-010: 組成準備中 → 組成中
+        assertThat(jdbc.queryForObject("select status from syndicate.deal where id = ?", String.class, DEAL_DRAFT))
+                .isEqualTo("FORMING");
+        // BR-005: 経路属性はコミットメント額(クレジットスコアは借り手審査 UC-009 ができてから、#31)
+        assertThat(jdbc.queryForList("select name, value from workflow.approval_attribute where request_id = ?",
+                requestId))
+                .extracting(row -> row.get("name") + "=" + ((java.math.BigDecimal) row.get("value"))
+                        .stripTrailingZeros().toPlainString())
+                .containsExactly("amount=100000000");
+        assertThat(jdbc.queryForList("select name, value from workflow.approval_condition where request_id = ?",
+                requestId))
+                .extracting(row -> row.get("name") + "=" + row.get("value"))
+                .containsExactlyInAnyOrder("currency=JPY", "start_date=2027-01-04", "end_date=2027-12-30",
+                        "shares=9001=20000000;9002=80000000");
+        // step 8: 組成を開くと、ファシリティは稟議にかかっていて直せない(BR-007)
+        var view = assertThat(start(DEAL_DRAFT, LEAD_USER)).bodyJson();
+        view.extractingPath("$.blockedReason").asString().isEqualTo("FACILITY_LOCKED");
+        view.extractingPath("$.facility.underApproval").asBoolean().isTrue();
+        // UC-024 step 9: メイントラックの最初の承認者に依頼が届く
+        assertThat(jdbc.queryForList("select recipient_id from notification.notice", Long.class))
+                .containsExactly(LEAD_MANAGER);
+    }
+
+    @Test
+    @UseCase(id = "UC-015", scenario = "A10: 起案の前に融資案件が取り下げられた", businessRules = {"BR-010"})
+    void discards_the_facility_when_the_deal_was_withdrawn_before_drafting() {
+        jdbc.update("update syndicate.deal set status = 'WITHDRAWN' where id = ?", DEAL_DRAFT);
+
+        MvcTestResult result = submitFormationRequest(DEAL_DRAFT, LEAD_USER, 3, LEAD_DIRECTOR);
+
+        assertProblem(result, 409, "/problems/business-rule");
+        assertNoFacility(DEAL_DRAFT);
+        assertThat(count("workflow.approval_request")).isZero();
+    }
+
+    @Test
+    @UseCase(id = "UC-015", scenario = "A6: 組成の間に参加の回答かファシリティが変わった", requirements = {"NFR-003"})
+    void does_not_draft_a_request_for_a_facility_changed_since_the_proposal() {
+        MvcTestResult result = submitFormationRequest(DEAL_DRAFT, LEAD_USER, 2, LEAD_DIRECTOR);
+
+        assertProblem(result, 409, "/problems/concurrent-change");
+        assertThat(count("workflow.approval_request")).isZero();
+        assertThat(jdbc.queryForObject("select status from syndicate.deal where id = ?", String.class, DEAL_DRAFT))
+                .isEqualTo("PREPARING");
+    }
+
+    @Test
+    @UseCase(id = "UC-015", scenario = "A2: 確定したか稟議中のファシリティがある", businessRules = {"BR-007"})
+    void does_not_draft_a_second_request_for_a_facility_under_approval() {
+        MvcTestResult result = submitFormationRequest(DEAL_UNDER_APPROVAL, LEAD_USER, 2, LEAD_DIRECTOR);
+
+        assertProblem(result, 409, "/problems/business-rule");
+        assertThat(count("workflow.approval_request")).isZero();
+    }
+
+    @Test
+    @UseCase(id = "UC-015")
+    void needs_a_facility_under_formation_before_drafting() {
+        MvcTestResult result = mvc.get().uri("/api/deals/{id}/facility/approval-proposal", DEAL_NEW)
+                .header("X-Acting-User", String.valueOf(LEAD_USER)).exchange();
+
+        assertProblem(result, 409, "/problems/business-rule");
+    }
+
+    @Test
+    @UseCase(id = "UC-015")
+    void returns_the_fields_the_approval_route_needs_corrected() {
+        // 部長の段を空のまま申請する(UC-024 A5)
+        MvcTestResult result = submitFormationRequest(DEAL_DRAFT, LEAD_USER, 3, null);
+
+        assertInvalid(result, "steps[1]");
+        assertThat(count("workflow.approval_request")).isZero();
+    }
+
+    @Test
+    @UseCase(id = "UC-015", requirements = {"NFR-007"})
+    void hides_the_formation_request_from_other_banks_and_non_business_users() {
+        assertProblem(submitFormationRequest(DEAL_DRAFT, OTHER_BANK_USER, 3, LEAD_DIRECTOR), 404, "/problems/not-found");
+        assertProblem(submitFormationRequest(DEAL_DRAFT, LEAD_ADMIN, 3, LEAD_DIRECTOR), 403, "/problems/forbidden");
+        assertThat(count("workflow.approval_request")).isZero();
+    }
+
+    private MvcTestResult submitFormationRequest(long dealId, long userId, int facilityVersion, Long director) {
+        return mvc.post().uri("/api/deals/{id}/facility/approval-request", dealId)
+                .header("X-Acting-User", String.valueOf(userId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"facilityVersion": %d, "routeRuleId": 9501, "routeRuleVersion": 0,
+                         "title": "組成の稟議", "body": "本文",
+                         "steps": [{"kind": "MAIN", "order": 1, "userId": 9111},
+                                   {"kind": "MAIN", "order": 2, "userId": %s}]}
+                        """.formatted(facilityVersion, director))
+                .exchange();
+    }
+
+    private int count(String table) {
+        return jdbc.queryForObject("select count(*) from " + table, Integer.class);
+    }
+
     // ---------------------------------------------------------------- helpers
 
     private MvcTestResult start(long dealId, long userId) {

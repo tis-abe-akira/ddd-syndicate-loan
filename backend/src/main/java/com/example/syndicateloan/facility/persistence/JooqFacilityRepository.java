@@ -86,6 +86,13 @@ public class JooqFacilityRepository implements FacilityRepository {
                 facility.sharePie(), facility.status(), facility.approvalRequestId(), facility.version() + 1);
     }
 
+    @Override
+    @Transactional
+    public void delete(long facilityId) {
+        ctx.deleteFrom(FACILITY_SHARE).where(FACILITY_SHARE.FACILITY_ID.eq(facilityId)).execute();
+        ctx.deleteFrom(FACILITY_).where(FACILITY_.ID.eq(facilityId)).execute();
+    }
+
     private SharePie sharePie(long facilityId) {
         Map<Long, BigDecimal> shares = new LinkedHashMap<>();
         ctx.select(FACILITY_SHARE.ORGANIZATION_ID, FACILITY_SHARE.AMOUNT)

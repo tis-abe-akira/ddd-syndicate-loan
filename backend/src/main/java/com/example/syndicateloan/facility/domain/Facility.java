@@ -66,4 +66,12 @@ public record Facility(
         }
         return new Facility(id, dealId, currency, newPeriod, newSharePie, status, approvalRequestId, version);
     }
+
+    /** UC-015 step 7: 組成の稟議にかけたファシリティ。以後、稟議の間は直せない(BR-007)。 */
+    public Facility underApproval(long approvalRequestId) {
+        if (!isRevisable()) {
+            throw new IllegalStateException("The facility cannot be put under approval: " + id);
+        }
+        return new Facility(id, dealId, currency, period, sharePie, status, approvalRequestId, version);
+    }
 }

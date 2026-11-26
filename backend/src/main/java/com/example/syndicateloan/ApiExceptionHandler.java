@@ -6,6 +6,10 @@ import com.example.syndicateloan.shared.ConcurrentChangeException;
 import com.example.syndicateloan.shared.ForbiddenException;
 import com.example.syndicateloan.shared.InvalidInputException;
 import com.example.syndicateloan.shared.NotFoundException;
+import com.example.syndicateloan.workflow.ApprovalConcurrentChangeException;
+import com.example.syndicateloan.workflow.ApprovalForbiddenException;
+import com.example.syndicateloan.workflow.ApprovalNotAllowedException;
+import com.example.syndicateloan.workflow.InvalidApprovalDraftException;
 import java.net.URI;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -52,6 +56,33 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(ConcurrentChangeException.class)
     ProblemDetail concurrentChange(ConcurrentChangeException e) {
         return problem(HttpStatus.CONFLICT, "concurrent-change", e.getMessage());
+    }
+
+    /** UC-024 A1・A2・A3: 理由(reason)と、進んでいるか否決された稟議(existingRequestId)を添える。 */
+    @ExceptionHandler(ApprovalNotAllowedException.class)
+    ProblemDetail approvalNotAllowed(ApprovalNotAllowedException e) {
+        ProblemDetail problem = problem(HttpStatus.CONFLICT, "approval-not-allowed", e.getMessage());
+        problem.setProperty("reason", e.reason().name());
+        problem.setProperty("existingRequestId", e.existingRequestId());
+        return problem;
+    }
+
+    /** UC-024 A5: 直すべき項目(title、steps、steps[添字])を、入力の誤りと同じ形で返す。 */
+    @ExceptionHandler(InvalidApprovalDraftException.class)
+    ProblemDetail invalidApprovalDraft(InvalidApprovalDraftException e) {
+        ProblemDetail problem = problem(HttpStatus.BAD_REQUEST, "invalid-input", e.getMessage());
+        problem.setProperty("errors", e.errors());
+        return problem;
+    }
+
+    @ExceptionHandler(ApprovalConcurrentChangeException.class)
+    ProblemDetail approvalConcurrentChange(ApprovalConcurrentChangeException e) {
+        return problem(HttpStatus.CONFLICT, "concurrent-change", e.getMessage());
+    }
+
+    @ExceptionHandler(ApprovalForbiddenException.class)
+    ProblemDetail approvalForbidden(ApprovalForbiddenException e) {
+        return problem(HttpStatus.FORBIDDEN, "forbidden", e.getMessage());
     }
 
     private static ProblemDetail problem(HttpStatus status, String type, String detail) {

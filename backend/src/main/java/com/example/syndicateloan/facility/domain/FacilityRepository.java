@@ -16,4 +16,7 @@ public interface FacilityRepository {
      * @throws com.example.syndicateloan.shared.ConcurrentChangeException 別の操作が変えていたとき
      */
     Facility update(Facility facility);
+
+    /** 組成中のファシリティとそのシェアパイを破棄する(UC-015 A10)。 */
+    void delete(long facilityId);
 }

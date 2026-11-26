@@ -28,4 +28,12 @@ public class DealsService implements Deals {
     public Optional<DealForFormation> lockForFormation(long dealId) {
         return deals.lockForFormation(dealId);
     }
+
+    @Override
+    @Transactional
+    public void startFormation(long dealId) {
+        if (!deals.markForming(dealId)) {
+            throw new IllegalStateException("The deal is not preparing: " + dealId);
+        }
+    }
 }

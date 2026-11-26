@@ -38,7 +38,8 @@ public class JooqDealRepository implements DealRepository {
     }
 
     private Optional<DealForFormation> read(long dealId, boolean lock) {
-        var query = ctx.select(DEAL.ID, DEAL.VERSION, DEAL.LEAD_ORGANIZATION_ID, DEAL.CURRENCY, DEAL.STATUS)
+        var query = ctx.select(DEAL.ID, DEAL.VERSION, DEAL.LEAD_ORGANIZATION_ID, DEAL.CURRENCY, DEAL.BORROWER_ORGANIZATION_ID,
+                        DEAL.PURPOSE, DEAL.STATUS)
                 .from(DEAL)
                 .where(DEAL.ID.eq(dealId));
         var deal = lock ? query.forUpdate().fetchOptional() : query.fetchOptional();
@@ -47,7 +48,9 @@ public class JooqDealRepository implements DealRepository {
                 row.value2(),
                 row.value3(),
                 row.value4(),
-                DealStatus.valueOf(row.value5()),
+                row.value5(),
+                row.value6(),
+                DealStatus.valueOf(row.value7()),
                 acceptedInvestors(dealId, lock)));
     }
 
@@ -70,5 +73,17 @@ public class JooqDealRepository implements DealRepository {
                 .orderBy(DEAL_PARTICIPANT.ORGANIZATION_ID)
                 .fetch(Records.mapping((organizationId, commitment) ->
                         new AcceptedInvestor(organizationId, BigDecimal.valueOf(commitment))));
+    }
+
+    @Override
+    @Transactional
+    public boolean markForming(long dealId) {
+        return ctx.update(DEAL)
+                .set(DEAL.STATUS, DealStatus.FORMING.name())
+                .set(DEAL.VERSION, DEAL.VERSION.plus(1))
+                .where(DEAL.ID.eq(dealId))
+                // UC-015 BR-010: a deal goes from preparing to forming when the formation request is drafted.
+                .and(DEAL.STATUS.eq(DealStatus.PREPARING.name()))
+                .execute() == 1;
     }
 }
