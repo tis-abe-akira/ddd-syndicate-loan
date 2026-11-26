@@ -116,6 +116,14 @@ public class ApprovalRequestService implements ApprovalRequests {
     public SubmittedApproval resubmit(Resubmission resubmission, ActingUser drafter) {
         ApprovalSubject subject = resubmission.subject();
         checkDrafter(drafter);
+        // UC-028 A6: the request shown at step 2 is no longer sent back (resubmitted by another operation).
+        requests.findLatest(drafter.organizationId(), subject.subjectType(), subject.subjectRef())
+                .filter(latest -> latest.id() == resubmission.requestId())
+                .filter(latest -> latest.status() != ApprovalStatus.DRAFT)
+                .ifPresent(latest -> {
+                    throw new ApprovalConcurrentChangeException(
+                            "稟議が、別の操作で変わりました。再申請をやり直してください。");
+                });
         LatestRequest sentBack = sentBack(subject, drafter);
         // UC-028 A6: the request shown at step 2 was resubmitted (or otherwise changed) since.
         // UC-028 BR-008: the sent-back request is still the latest one for the subject (UC-024 BR-009).
