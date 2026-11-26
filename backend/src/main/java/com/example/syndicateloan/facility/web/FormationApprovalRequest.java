@@ -21,7 +21,7 @@ public record FormationApprovalRequest(
         int routeRuleVersion,
         @Schema(types = {"string", "null"}) String title,
         @Schema(types = {"string", "null"}) String body,
-        @NotNull @Valid List<StepRequest> steps) {
+        @NotNull @Valid List<ApprovalStepRequest> steps) {
 
     /**
      * 承認経路の一つの段に入れた利用者。
@@ -30,7 +30,7 @@ public record FormationApprovalRequest(
      * @param order  メイントラックの中の順番。メイントラック以外は null
      * @param userId 利用者。空なら null
      */
-    public record StepRequest(
+    public record ApprovalStepRequest(
             @NotNull String kind,
             @Schema(types = {"integer", "null"}) Integer order,
             @Schema(types = {"integer", "null"}) Long userId) {

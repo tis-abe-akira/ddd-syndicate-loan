@@ -21,15 +21,15 @@ public record FormationApprovalProposalResponse(
         long routeRuleId,
         int routeRuleVersion,
         String title,
-        List<StepResponse> steps) {
+        List<ProposedStepResponse> steps) {
 
     static FormationApprovalProposalResponse of(FormationApprovalProposal proposal) {
         ProposedRoute route = proposal.route();
         return new FormationApprovalProposalResponse(proposal.facilityId(), proposal.facilityVersion(),
                 route.routeRuleId(), route.routeRuleVersion(), route.title(),
-                route.steps().stream().map(s -> new StepResponse(s.kind().name(), s.order(), s.positionName(),
+                route.steps().stream().map(s -> new ProposedStepResponse(s.kind().name(), s.order(), s.positionName(),
                         s.userId(), s.candidates().stream()
-                                .map(c -> new CandidateResponse(c.userId(), c.name(), c.positionName()))
+                                .map(c -> new ApprovalCandidateResponse(c.userId(), c.name(), c.positionName()))
                                 .toList()))
                         .toList());
     }
@@ -43,12 +43,12 @@ public record FormationApprovalProposalResponse(
      * @param userId       規則が自動で入れた利用者。決まらなければ null
      * @param candidates   この段に入れられる利用者
      */
-    public record StepResponse(
+    public record ProposedStepResponse(
             String kind,
             @Schema(types = {"integer", "null"}) Integer order,
             @Schema(types = {"string", "null"}) String positionName,
             @Schema(types = {"integer", "null"}) Long userId,
-            List<CandidateResponse> candidates) {
+            List<ApprovalCandidateResponse> candidates) {
     }
 
     /**
@@ -58,6 +58,6 @@ public record FormationApprovalProposalResponse(
      * @param name         氏名
      * @param positionName 職位。なければ null
      */
-    public record CandidateResponse(long userId, String name, @Schema(types = {"string", "null"}) String positionName) {
+    public record ApprovalCandidateResponse(long userId, String name, @Schema(types = {"string", "null"}) String positionName) {
     }
 }

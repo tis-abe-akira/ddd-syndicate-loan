@@ -11,12 +11,12 @@ import java.util.List;
  * @param status    稟議の状態(IN_CONSULTATION か IN_APPROVAL)
  * @param steps     承認経路
  */
-public record FormationApprovalResponse(long requestId, String status, List<StepResponse> steps) {
+public record FormationApprovalResponse(long requestId, String status, List<SubmittedStepResponse> steps) {
 
     static FormationApprovalResponse of(SubmittedApproval submitted) {
         return new FormationApprovalResponse(submitted.requestId(), submitted.status().name(),
                 submitted.steps().stream()
-                        .map(s -> new StepResponse(s.kind().name(), s.order(), s.userId(), s.autoAssigned()))
+                        .map(s -> new SubmittedStepResponse(s.kind().name(), s.order(), s.userId(), s.autoAssigned()))
                         .toList());
     }
 
@@ -28,7 +28,7 @@ public record FormationApprovalResponse(long requestId, String status, List<Step
      * @param userId       利用者
      * @param autoAssigned 規則の案のまま変えていないか
      */
-    public record StepResponse(
+    public record SubmittedStepResponse(
             String kind, @Schema(types = {"integer", "null"}) Integer order, long userId, boolean autoAssigned) {
     }
 }
