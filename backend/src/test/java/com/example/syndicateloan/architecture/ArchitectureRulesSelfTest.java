@@ -41,6 +41,7 @@ class ArchitectureRulesSelfTest {
     private static Stream<NamedRule> rules() {
         return Stream.of(
                 new NamedRule("workflow depends only on organization", ArchitectureRules::workflowDependsOnlyOnOrganization),
+                new NamedRule("notification depends only on organization and workflow", ArchitectureRules::notificationDependsOnlyOnOrganizationAndWorkflow),
                 new NamedRule("organization depends on no other module", ArchitectureRules::organizationDependsOnNoOtherModule),
                 new NamedRule("domain does not depend on outer layers", ArchitectureRules::domainDoesNotDependOnOuterLayers),
                 new NamedRule("domain does not use frameworks", ArchitectureRules::domainDoesNotUseFrameworks),

@@ -36,6 +36,7 @@ final class ArchitectureRules {
     List<ArchRule> all() {
         return List.of(
                 workflowDependsOnlyOnOrganization(),
+                notificationDependsOnlyOnOrganizationAndWorkflow(),
                 organizationDependsOnNoOtherModule(),
                 domainDoesNotDependOnOuterLayers(),
                 domainDoesNotUseFrameworks(),
@@ -44,6 +45,13 @@ final class ArchitectureRules {
     }
 
     /** ADR-002: workflow が依存してよいモジュールは organization だけ。 */
+    ArchRule notificationDependsOnlyOnOrganizationAndWorkflow() {
+        return noClasses().that().resideInAPackage(root + ".notification..")
+                .should().dependOnClassesThat(insideApplicationExcept("notification", "organization", "workflow"))
+                .because("お知らせは workflow のイベントを受けて届ける汎用の仕組み(設計方針の「ワークフローの独立」)で、業務のモジュールに依存しない")
+                .allowEmptyShould(true);
+    }
+
     ArchRule workflowDependsOnlyOnOrganization() {
         return noClasses().that().resideInAPackage(root + ".workflow..")
                 .should().dependOnClassesThat(insideApplicationExcept("workflow", "organization"))
