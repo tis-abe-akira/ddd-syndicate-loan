@@ -493,6 +493,7 @@ erDiagram
 | requested_amount    | 拠出の依頼額。ファシリティのシェアパイで按分し、リード銀行が指定し直せる | Decimal   | 15,0             | Not Null, Min: 0, Max: 999999999999999                      |
 | answer              | 回答                                              | String    | 20               | Not Null, Values: PENDING, ACCEPTED, DECLINED, INCREASED     |
 | answered_amount     | 回答した拠出額                                    | Decimal   | 15,0             | Optional, Min: 0, Max: 999999999999999                      |
+| request_revision    | 依頼額の版。依頼額を指定し直すたびに1増える       | Integer   | 10               | Not Null, Min: 1, Max: 999                                  |
 | approval_request_id | 拠出の回答の稟議(外部キーは張らない)            | Long      | 19               | Optional                                                    |
 
 #### Constraints
@@ -502,7 +503,8 @@ erDiagram
 - answer が ACCEPTED なら answered_amount は requested_amount に等しく、DECLINED なら 0、INCREASED なら requested_amount より大きい。
 - answer が PENDING でなければ answered_amount がある。
 - requested_amount と answered_amount は、その参加金融機関の拠出の余地(FACILITY_SHARE の amount − LOAN_SHARE の amount)以下である。
-- answer は、回答の稟議が最終決裁で承認されたときに PENDING から変わる。requested_amount が指定し直されたら、answer は PENDING に戻る。
+- answer は、回答の稟議が最終決裁で承認されたときに PENDING から変わる。requested_amount が指定し直されたら、answer は PENDING に戻り、request_revision が1増える。
+- 回答の稟議の対象は、drawdown_id、organization_id、request_revision の組である。承認された稟議の request_revision が今の値と違えば、answer は変わらない(UC-017 BR-005)。
 
 ### REPAYMENT_SCHEDULE_ITEM
 
