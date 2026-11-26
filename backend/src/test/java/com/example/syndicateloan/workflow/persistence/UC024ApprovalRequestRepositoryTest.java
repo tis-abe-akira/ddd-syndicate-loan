@@ -80,6 +80,27 @@ class UC024ApprovalRequestRepositoryTest {
                 where r.subject_ref = ?""", Integer.class, SUBJECT_REF)).isEqualTo(1);
     }
 
+    @Test
+    @UseCase(id = "UC-024", scenario = "A5: 承認経路か件名が正しくない", requirements = {"NFR-003"})
+    void leaves_neither_the_request_nor_its_route_when_writing_the_route_fails() {
+        // 稟議の行を書いた後、承認経路の段の書き込みで失敗させる(存在しない利用者)
+        NewApprovalRequest broken = new NewApprovalRequest(7001,
+                new ApprovalSubject("UC024_TYPE", SUBJECT_REF, "件名", Map.of("amount", BigDecimal.ONE),
+                        Map.of("currency", "JPY")),
+                "件名", null, 7101, 7501, ApprovalStatus.IN_APPROVAL, LocalDateTime.of(2026, 12, 1, 9, 0),
+                List.of(new RouteStep(StepKind.MAIN, 1, 7602L, 7102, true),
+                        new RouteStep(StepKind.REPORT, null, null, 999_999, false)));
+
+        assertThatThrownBy(() -> requests.insert(broken)).isInstanceOf(RuntimeException.class);
+
+        // 失敗時の事後条件: 稟議と承認経路のどちらか一方だけが登録されることはない
+        assertThat(jdbc.queryForObject("select count(*) from workflow.approval_request where subject_ref = ?",
+                Integer.class, SUBJECT_REF)).isZero();
+        assertThat(jdbc.queryForObject("select count(*) from workflow.approval_attribute a "
+                + "join workflow.approval_request r on r.id = a.request_id where r.subject_ref = ?",
+                Integer.class, SUBJECT_REF)).isZero();
+    }
+
     /** UC-024 のテストデータ(R__uc024_draft_approval_request.sql)の組織・起案者・規則で作る稟議。 */
     private static NewApprovalRequest request() {
         return new NewApprovalRequest(7001,
