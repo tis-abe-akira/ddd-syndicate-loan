@@ -476,18 +476,19 @@ class UC024DraftApprovalRequestServiceTest {
     }
 
     @Test
-    @UseCase(id = "UC-024", scenario = "A6: 起案の間に規則か同じ対象の稟議が変わった",
-            businessRules = {"BR-009"}, requirements = {"NFR-003"})
-    void registers_nothing_when_another_request_for_the_subject_was_submitted_after_drafting_started() {
+    @UseCase(id = "UC-024", scenario = "A1: 同じ対象の稟議が進んでいる", businessRules = {"BR-009"})
+    void refuses_to_submit_when_another_request_for_the_subject_was_submitted_after_drafting_started() {
         ApprovalSubject subject = subject("deal:1", UNDER_ONE_BILLION);
         ProposedRoute route = approvals.propose(subject, DRAFTER);
         long other = submitDefault("deal:1"); // 別の起案者の操作で、先に申請された
 
-        assertThatThrownBy(() -> approvals.submit(draft(subject, route, defaultSteps()), DRAFTER))
-                .isInstanceOf(ApprovalConcurrentChangeException.class);
+        ApprovalNotAllowedException e = catchThrowableOfType(ApprovalNotAllowedException.class,
+                () -> approvals.submit(draft(subject, route, defaultSteps()), DRAFTER));
+
+        assertThat(e.reason()).isEqualTo(Reason.IN_PROGRESS);
+        assertThat(e.existingRequestId()).isEqualTo(other);
         assertThat(jdbc.queryForObject("select count(*) from workflow.approval_request where subject_ref = 'deal:1'",
                 Integer.class)).isEqualTo(1);
-        assertThat(other).isPositive();
     }
 
     // ---------------------------------------------------------------- helpers
