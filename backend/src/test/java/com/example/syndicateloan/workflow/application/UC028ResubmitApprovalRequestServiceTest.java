@@ -192,6 +192,10 @@ class UC028ResubmitApprovalRequestServiceTest {
         assertThat(steps(1)).containsExactly(
                 "CONSULTATION:8103:APPROVED:異議なし", "MAIN:8104:SENT_BACK:金額の根拠を足してください",
                 "REPORT:8106:PENDING");
+        // BR-006: 前の回の段の判断の日時もそのまま
+        assertThat(jdbc.queryForList("select decided_at from workflow.approval_step where request_id = ?"
+                + " and round = 1 order by id", Timestamp.class, SENT_BACK)).containsExactly(
+                Timestamp.valueOf("2026-11-30 11:00:00"), Timestamp.valueOf("2026-11-30 12:00:00"), null);
         // step 9、BR-007: 合議先の全員に判断の依頼。報告先には知らせない
         assertThat(notices()).containsExactly("8103:CONSULTATION_REQUESTED:approval-request:" + SENT_BACK);
     }
@@ -262,7 +266,7 @@ class UC028ResubmitApprovalRequestServiceTest {
      * 取り消しはテストのトランザクションの外でしか確かめられないので、このテストはトランザクションを持たない。
      */
     @Test
-    @UseCase(id = "UC-028", scenario = "Main Success Scenario", businessRules = {"BR-006"})
+    @UseCase(id = "UC-028", scenario = "Failure Postconditions", businessRules = {"BR-006"})
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     void records_nothing_when_the_notice_cannot_be_recorded_after_the_request_was_updated() {
         ApprovalSubject subject = subject("deal:1", UNDER_100M);
@@ -465,7 +469,7 @@ class UC028ResubmitApprovalRequestServiceTest {
     }
 
     @Test
-    @UseCase(id = "UC-028", scenario = "Main Success Scenario")
+    @UseCase(id = "UC-028", scenario = "Preconditions")
     void lets_only_business_users_resubmit() {
         ApprovalSubject subject = subject("deal:1", UNDER_100M);
         assertThatThrownBy(() -> approvals.proposeResubmission(subject, ADMIN))
