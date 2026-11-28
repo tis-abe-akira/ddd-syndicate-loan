@@ -74,8 +74,11 @@ public class ApprovalDecisionService implements ApprovalDecisions {
         ApprovalRequestState state = visible(requests.find(requestId, true), requestId, user);
         Optional<Reason> blocked = state.blockedReason(user.userId());
         if (blocked.isPresent()) {
-            if (state.version() != command.viewedVersion()) {
-                // A6: another operation changed the request after it was opened.
+            // A6: since it was opened, another operation ended the request's progress or decided the
+            // user's own step. Any other reason (not the user's turn, not on the route) is A2 as it is.
+            boolean changedByAnother = blocked.get() == Reason.NOT_IN_PROGRESS
+                    || blocked.get() == Reason.ALREADY_DECIDED;
+            if (changedByAnother && state.version() != command.viewedVersion()) {
                 throw new ApprovalConcurrentChangeException("稟議が、別の操作で変わりました。開き直してください。");
             }
             throw notAllowed(blocked.get());

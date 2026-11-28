@@ -27,7 +27,8 @@ import org.springframework.transaction.annotation.Transactional;
  * UC-015 step 7、8: 組成中のファシリティを、組成の稟議にかける(UC-024 を含む)。A8、A10、BR-005、BR-010 の起案の部分。
  *
  * <p>稟議の中身はファシリティから組み立て、画面からは受け取らない(UC-024 BR-007、#41)。
- * 承認・否決の後の処理(BR-006、BR-010 の後半)と、否決後の再起案(A4)は、UC-026・UC-029 ができてから足す(#31)。
+ * 承認・差し戻し・否決の後の処理(BR-006、BR-010 の後半)は {@link FormationApprovalOutcomeListener} が持つ。
+ * 差し戻し後の再申請(A11、UC-028)と否決後の再起案(A4、UC-029)の入口は、まだない(#31)。
  */
 @Service
 @Transactional(readOnly = true)
