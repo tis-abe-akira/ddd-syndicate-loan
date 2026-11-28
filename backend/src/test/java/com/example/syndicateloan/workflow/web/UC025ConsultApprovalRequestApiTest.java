@@ -198,6 +198,22 @@ class UC025ConsultApprovalRequestApiTest {
     }
 
     @Test
+    @UseCase(id = "UC-025", scenario = "A5: コメントがない", businessRules = {"BR-005", "BR-008"})
+    void leaves_the_business_and_the_notices_as_they_are_when_the_decision_is_refused() {
+        MvcTestResult result = decide(6207, CONSULT_A, "SEND_BACK", " ", 0);
+
+        // Failure Postconditions: 判断も、お知らせも、業務への伝達も、どれも起きない
+        assertProblem(result, 400, "/problems/invalid-input");
+        assertThat(status(6207)).isEqualTo("IN_CONSULTATION");
+        assertThat(jdbc.queryForObject("select count(*) from notification.notice where subject_ref = ?",
+                Integer.class, "approval-request:6207")).isZero();
+        assertThat(jdbc.queryForObject("select approval_request_id from facility.facility where id = 6603",
+                Long.class)).isEqualTo(6207L);
+        assertThat(jdbc.queryForObject("select status from syndicate.deal where id = 6503", String.class))
+                .isEqualTo("FORMING");
+    }
+
+    @Test
     @UseCase(id = "UC-025", scenario = "A3: 合議先が差し戻す", businessRules = {"BR-008"})
     void tells_the_business_when_a_consultee_sends_the_formation_request_back() {
         assertThat(decide(6207, CONSULT_A, "SEND_BACK", "持分を見直してください", 0)).hasStatusOk();
@@ -258,6 +274,30 @@ class UC025ConsultApprovalRequestApiTest {
 
         assertProblem(result, 409, "/problems/concurrent-change");
         assertThat(steps(6201)).startsWith("6301:SKIPPED");
+    }
+
+    @Test
+    @UseCase(id = "UC-025", scenario = "A2: 今は判断できない", requirements = {"NFR-003"})
+    void tells_why_a_user_cannot_decide_even_when_the_request_changed_after_it_was_opened() {
+        int viewed = 0; // 承認 1段目が開いた後、合議 B が承認してバージョンが上がる
+        decide(6201, CONSULT_B, "APPROVE", null, 0);
+
+        // 判断できない理由が稟議の変化によらないなら、A6 ではなく A2 の理由を示す
+        assertReason(decide(6201, MAIN_1, "APPROVE", null, viewed), "NOT_YOUR_TURN");
+        assertReason(decide(6201, REPORTER, "APPROVE", null, viewed), "NOT_ASSIGNED");
+    }
+
+    @Test
+    @UseCase(id = "UC-025", scenario = "A6: 判断の間に稟議が変わった", businessRules = {"BR-006"},
+            requirements = {"NFR-003"})
+    void records_nothing_when_the_consultees_step_was_decided_in_another_operation() {
+        int viewed = 0; // 合議 A が二つの画面で開いた
+        decide(6201, CONSULT_A, "APPROVE", null, viewed); // 一つめの画面で承認した
+
+        MvcTestResult result = decide(6201, CONSULT_A, "REJECT", "やはり否決", viewed);
+
+        assertProblem(result, 409, "/problems/concurrent-change");
+        assertThat(steps(6201)).startsWith("6301:APPROVED");
     }
 
     @Test

@@ -187,10 +187,55 @@ class UC026ApproveApprovalRequestApiTest {
     }
 
     @Test
+    @UseCase(id = "UC-026", scenario = "A2: 今は判断できない", businessRules = {"BR-006", "BR-007"})
+    void tells_why_a_user_cannot_decide_on_the_main_track() {
+        // 報告先と起案者は、メイントラックの判断する段にいない(代理の判断はしない、BR-007)
+        assertReason(decide(6202, REPORTER, "APPROVE", null, 1), "NOT_ASSIGNED");
+        assertReason(decide(6202, DRAFTER, "APPROVE", null, 1), "NOT_ASSIGNED");
+        // 判断は一度(BR-006)
+        decide(6202, MAIN_1, "APPROVE", null, 1);
+        assertReason(decide(6202, MAIN_1, "REJECT", "やはり否決", 2), "ALREADY_DECIDED");
+        // 承認中でない稟議
+        assertReason(decide(6203, MAIN_1, "APPROVE", null, 2), "NOT_IN_PROGRESS");
+        assertThat(steps(6202)).containsExactly("6311:APPROVED", "6312:APPROVED", "6313:PENDING", "6314:PENDING");
+    }
+
+    @Test
+    @UseCase(id = "UC-026", scenario = "A6: 判断の間に稟議が変わった", requirements = {"NFR-003"})
+    void records_nothing_when_the_request_left_approval_after_it_was_opened() {
+        int viewed = 1; // 承認 1段目が二つの画面で開き、一つめの画面で差し戻した
+        decide(6202, MAIN_1, "SEND_BACK", "根拠を足してください", viewed);
+
+        assertProblem(decide(6202, MAIN_1, "APPROVE", null, viewed), 409, "/problems/concurrent-change");
+        assertThat(status(6202)).isEqualTo("DRAFT");
+    }
+
+    @Test
+    @UseCase(id = "UC-026", scenario = "Main Success Scenario", businessRules = {"BR-001"})
+    void lists_the_requests_the_approver_decides_now() {
+        // 承認 1段目の番の稟議だけ。合議中の 6201 と、2段目の番の稟議は入らない
+        assertThat(mvc.get().uri("/api/approval-requests/assigned").header("X-Acting-User", String.valueOf(MAIN_1))
+                .exchange()).bodyJson().extractingPath("$[*].requestId").asArray().containsExactly(6202, 6205, 6206);
+        assertThat(mvc.get().uri("/api/approval-requests/assigned").header("X-Acting-User", String.valueOf(MAIN_2))
+                .exchange()).bodyJson().extractingPath("$[*].requestId").asArray().containsExactly(6210);
+    }
+
+    @Test
+    @UseCase(id = "UC-026", scenario = "Preconditions")
+    void lets_only_business_users_open_list_and_decide() {
+        assertProblem(open(6202, ORG_ADMIN), 403, "/problems/forbidden");
+        assertProblem(mvc.get().uri("/api/approval-requests/assigned")
+                .header("X-Acting-User", String.valueOf(ORG_ADMIN)).exchange(), 403, "/problems/forbidden");
+        assertProblem(decide(6202, ORG_ADMIN, "APPROVE", null, 1), 403, "/problems/forbidden");
+        assertThat(status(6202)).isEqualTo("IN_APPROVAL");
+    }
+
+    @Test
     @UseCase(id = "UC-026", scenario = "A1: 稟議が見つからない", requirements = {"NFR-007"})
     void hides_requests_of_other_organizations() {
         assertProblem(open(6204, MAIN_1), 404, "/problems/not-found");
         assertProblem(decide(6204, MAIN_1, "APPROVE", null, 0), 404, "/problems/not-found");
+        assertProblem(decide(999_999, MAIN_1, "APPROVE", null, 0), 404, "/problems/not-found");
     }
 
     // ---------------------------------------------------------------- 組成の稟議(UC-015 BR-006・BR-010)と A8
@@ -258,6 +303,8 @@ class UC026ApproveApprovalRequestApiTest {
             MvcTestResult result = decide(6206, MAIN_1, "APPROVE", null, 0);
 
             assertProblem(result, 409, "/problems/business-rule");
+            // A8: 業務が処理できない理由を示す(文言は仕様が定めていないので、あることだけを確かめる)
+            assertThat(result).bodyJson().extractingPath("$.detail").asString().isNotBlank();
             assertThat(status(6206)).isEqualTo("IN_APPROVAL");
             assertThat(steps(6206)).containsExactly("6351:PENDING");
             assertThat(jdbc.queryForObject("select count(*) from notification.notice where subject_ref like ?",
@@ -308,6 +355,11 @@ class UC026ApproveApprovalRequestApiTest {
                     notices.add(rs.getLong(1) + ":" + rs.getString(2));
                 });
         return notices;
+    }
+
+    void assertReason(MvcTestResult result, String reason) {
+        assertProblem(result, 409, "/problems/decision-not-allowed");
+        assertThat(result).bodyJson().extractingPath("$.reason").asString().isEqualTo(reason);
     }
 
     void assertProblem(MvcTestResult result, int status, String type) {
